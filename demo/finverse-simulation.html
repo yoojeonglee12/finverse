@@ -110,7 +110,7 @@
   .tstep .tx{font-size:13px;color:var(--ink2);margin-top:2px;line-height:1.55}
   .tstep .rl{margin-top:5px}
 
-  .fac{display:grid;grid-template-columns:120px 1fr 40px;align-items:center;gap:9px;margin:6px 0;font-size:12.5px}
+  .fac{display:grid;grid-template-columns:158px 1fr 40px;align-items:center;gap:9px;margin:6px 0;font-size:12.5px}
   .fac .nm{color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .fac.mine .nm{color:var(--ink);font-weight:750}
   .fac .tr{position:relative;height:16px;background:var(--line-2);border-radius:5px;overflow:hidden}
@@ -364,6 +364,7 @@
           <div class="lab"><b>위험자산 노출</b><span class="delta" id="d2"></span></div>
           <div class="track"><div class="before" id="b2"></div><div class="after" id="a2"></div></div>
         </div>
+        <div class="calc" id="decomp"></div>
       </div>
 
       <div class="card pad mt16">
@@ -665,10 +666,18 @@ document.getElementById('submit').addEventListener('click',()=>{
 
   // 목표 영향: 포트폴리오 충격 + 선택의 방향성
   const tilt={buy:-1,hold:0,realize:1,diversify:.8,watch:-.3}[picked];
-  const stab=Math.max(5,Math.min(95, Math.round(70 + sum*6 + tilt*8)));
-  const risk=Math.max(5,Math.min(95, Math.round(58 - sum*4 - tilt*10)));
+  const evStab=sum*6, chStab=tilt*8;              /* 사건 영향 / 선택 효과 분리 */
+  const evRisk=-sum*4, chRisk=-tilt*10;
+  const stab=Math.max(5,Math.min(95, Math.round(70+evStab+chStab)));
+  const risk=Math.max(5,Math.min(95, Math.round(58+evRisk+chRisk)));
   meter('b1','a1','d1',[70,stab],false);
   meter('b2','a2','d2',[58,risk],true);
+  const f=(v)=>`<b style="color:${v>0?'#1f7a55':v<0?'#c0362f':'inherit'}">${v>0?'+':''}${v.toFixed(1)}</b>`;
+  document.getElementById('decomp').innerHTML=
+    `<b>목표 안정성</b>은 두 가지가 겹친 결과입니다 — 사건 자체의 영향과, 당신 선택의 효과.<br>
+     <code>70 &nbsp;+&nbsp; 사건 영향 ${f(evStab)} &nbsp;+&nbsp; 선택 효과 ${f(chStab)} &nbsp;=&nbsp; ${stab}</code><br>
+     <span style="color:var(--ink3)">사건의 충격은 선택과 무관하게 이미 발생했습니다. 선택은 그 충격을 <b>얼마나 상쇄하느냐</b>를 바꿉니다
+     — 상쇄가 충격보다 작으면 방어적으로 대응해도 안정성은 내려갈 수 있습니다.</span>`;
 
   let pills, note;
   if(!why){
