@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FINVERSE · 가상세계 (지식그래프 + 에이전트 시뮬레이션)</title>
+<style>
+  :root{
+    --bg:#0e1116; --panel:#141922; --panel-2:#1a212c; --line:#26303d;
+    --ink:#e8edf4; --ink2:#9aa7b5; --ink3:#657283;
+    --inst:#3987e5;   /* 기관 */
+    --force:#d95926;  /* 매크로 지표 */
+    --agent:#9085e9;  /* 인물(에이전트) */
+    --stock:#7f93a8;  /* 종목 */
+    --up:#e66767; --down:#3987e5;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--ink);
+    font-family:'Pretendard','Pretendard Variable',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+  .topbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid var(--line);background:#10151c}
+  .brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:15px;letter-spacing:-.01em}
+  .brand .mark{width:24px;height:24px;border-radius:7px;background:#fff;color:#10151c;display:grid;place-items:center;font-size:13px;font-weight:900}
+  .scn{font-size:12.5px;color:var(--ink2)}
+  .scn b{color:var(--ink)}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;margin-left:6px}
+  .legend span{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink2)}
+  .legend i{width:11px;height:11px;border-radius:50%;display:inline-block}
+  .legend i.dia{border-radius:2px;transform:rotate(45deg)}
+  .back{margin-left:auto;font-size:12.5px;color:var(--ink2);text-decoration:none;border:1px solid var(--line);border-radius:8px;padding:7px 12px;font-weight:600}
+  .back:hover{color:var(--ink);border-color:#3a4756}
+
+  .stage{flex:1;display:flex;min-height:0}
+  .canvas-wrap{flex:1;position:relative;min-width:0}
+  canvas{display:block;width:100%;height:100%}
+  .tip{position:absolute;pointer-events:none;background:#0b0f14;border:1px solid var(--line);border-radius:8px;
+    padding:7px 10px;font-size:12px;color:var(--ink);opacity:0;transition:opacity .1s;white-space:nowrap;z-index:5}
+  .tip b{font-weight:700}.tip small{color:var(--ink3)}
+  .hint{position:absolute;left:16px;bottom:14px;font-size:11.5px;color:var(--ink3)}
+
+  .panel{width:340px;flex-shrink:0;border-left:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;min-height:0}
+  .panel .h{padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+  .panel .h .t{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);font-weight:700}
+  .controls{display:flex;gap:8px;margin-top:10px}
+  .ctrl{flex:1;cursor:pointer;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);border-radius:9px;
+    padding:9px;font-size:12.5px;font-weight:700;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px}
+  .ctrl:hover{border-color:#3a4756}
+  .ctrl.play{background:#fff;color:#10151c;border-color:#fff}
+
+  .senti{padding:12px 16px;border-bottom:1px solid var(--line)}
+  .senti .row{display:flex;justify-content:space-between;font-size:11.5px;color:var(--ink3);font-weight:600;margin-bottom:6px}
+  .senti .bar{position:relative;height:8px;border-radius:999px;background:linear-gradient(90deg,#3987e5,#657283 50%,#e66767)}
+  .senti .mk{position:absolute;top:-3px;width:14px;height:14px;border-radius:50%;background:#fff;border:2px solid #10151c;transform:translateX(-50%);transition:left .5s ease;box-shadow:0 0 0 1px rgba(255,255,255,.3)}
+  .senti .val{font-size:12px;font-weight:700;margin-top:8px}
+  .flip{color:#ffcf5b;font-weight:800}
+
+  .feed{flex:1;overflow-y:auto;padding:8px 14px 20px}
+  .feed .empty{color:var(--ink3);font-size:12.5px;text-align:center;padding:26px 10px}
+  .msg{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid #1c242f;animation:slide .3s ease}
+  @keyframes slide{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .av{width:30px;height:30px;border-radius:9px;flex-shrink:0;display:grid;place-items:center;font-size:12px;font-weight:800;color:#0b0f14}
+  .msg .b{min-width:0}
+  .msg .who{font-size:12.5px;font-weight:700;display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+  .msg .tag{font-size:10px;font-weight:700;color:var(--ink3);border:1px solid var(--line);border-radius:5px;padding:1px 5px}
+  .msg .tx{font-size:12.5px;color:var(--ink2);margin-top:3px;line-height:1.5}
+  .grown{font-size:11px;color:#8fd0b0;margin-top:5px}
+  .cta{display:block;margin:14px 0 0;text-align:center;background:#fff;color:#10151c;text-decoration:none;border-radius:9px;padding:11px;font-weight:800;font-size:13px}
+
+  .counts{display:flex;gap:12px;padding:10px 16px;border-top:1px solid var(--line);font-size:11px;color:var(--ink3);flex-wrap:wrap}
+  .counts b{color:var(--ink2)}
+
+  @media(max-width:860px){
+    .stage{flex-direction:column}
+    .panel{width:auto;border-left:0;border-top:1px solid var(--line);max-height:44vh}
+    .canvas-wrap{min-height:44vh}
+  }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand"><span class="mark">F</span>FINVERSE</div>
+    <div class="scn">가상세계 · <b>AI 반도체 랠리 → 변곡점</b></div>
+    <div class="legend">
+      <span><i class="dia" style="background:var(--inst)"></i>기관</span>
+      <span><i style="background:var(--force)"></i>매크로 지표</span>
+      <span><i style="background:var(--agent)"></i>인물(에이전트)</span>
+      <span><i style="background:var(--stock)"></i>KOSPI 종목</span>
+    </div>
+    <div style="margin-left:auto;display:flex;gap:8px">
+      <button class="back" id="expand" style="cursor:pointer;margin-left:0">🌍 전체 세계 펼치기</button>
+      <a class="back" href="./finverse-simulation.html" style="margin-left:0">요약 데모로 →</a>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="canvas-wrap">
+      <canvas id="cv"></canvas>
+      <div class="tip" id="tip"></div>
+      <div class="hint">기본은 <b style="color:#cdd6e2">내 보유 종목</b>(삼성전자·SK하이닉스·LG에너지솔루션·카카오·KB금융, 금색 테두리) 관련 노드만 활성화됩니다. 우측 상단 <b style="color:#cdd6e2">전체 세계 펼치기</b>로 100종목 전부 보기 · ▶ 재생으로 에이전트 반응·그래프 성장 관찰.</div>
+    </div>
+
+    <aside class="panel">
+      <div class="h">
+        <div class="t">시뮬레이션 리플레이 · 미리 구운 필름</div>
+        <div class="controls">
+          <button class="ctrl play" id="play">▶ 재생</button>
+          <button class="ctrl" id="step">다음 ▶</button>
+          <button class="ctrl" id="reset">↺ 처음</button>
+        </div>
+      </div>
+      <div class="senti">
+        <div class="row"><span>불안</span><span>여론 (군중 심리)</span><span>낙관</span></div>
+        <div class="bar"><div class="mk" id="mk" style="left:68%"></div></div>
+        <div class="val" id="sentiVal">낙관 68 · 랠리 국면</div>
+      </div>
+      <div class="feed" id="feed"><div class="empty">▶ 재생을 눌러 세계를 깨우세요.</div></div>
+      <div class="counts">
+        <span>기관 <b>8</b></span><span>지표 <b>9</b></span><span>인물 <b>5</b></span><span>종목 <b>100</b></span>
+      </div>
+    </aside>
+  </div>
+
+<script>
+/* ================= 노드 정의 ================= */
+const FORCES=['미 기준금리(FFR)','한국 기준금리','원·달러 환율','미 국채 10년물','CPI(물가)','WTI 유가','AI·반도체 수요','외국인 수급','변동성(VIX)'];
+const INST=['미 연준','한국은행','ECB','일본은행','기획재정부','미 재무부','금융위원회','IMF'];
+const PERS=['워런 버핏','레이 달리오','캐시 우드','하워드 막스','리테일 군중'];
+const SECTORS={
+  '반도체/전자부품':{f:'AI·반도체 수요',s:['삼성전자','SK하이닉스','삼성전기','LG이노텍','한미반도체','DB하이텍','리노공업','이수페타시스']},
+  '2차전지':{f:'미 국채 10년물',s:['LG에너지솔루션','삼성SDI','LG화학','POSCO퓨처엠','SK이노베이션','엘앤에프','SKC']},
+  '자동차/부품':{f:'원·달러 환율',s:['현대차','기아','현대모비스','현대위아','HL만도','한국타이어앤테크놀로지','한온시스템']},
+  '바이오/제약':{f:'미 국채 10년물',s:['삼성바이오로직스','셀트리온','유한양행','SK바이오팜','한미약품','종근당','녹십자']},
+  '인터넷/게임':{f:'미 국채 10년물',s:['NAVER','카카오','크래프톤','엔씨소프트','넷마블','카카오페이']},
+  '금융/증권/보험':{f:'한국 기준금리',s:['KB금융','신한지주','하나금융지주','우리금융지주','메리츠금융지주','삼성생명','삼성화재','미래에셋증권','한국금융지주','카카오뱅크','기업은행']},
+  '철강/비철':{f:'WTI 유가',s:['POSCO홀딩스','고려아연','현대제철','영풍','풍산']},
+  '화학/정유':{f:'WTI 유가',s:['롯데케미칼','금호석유','S-Oil','한화솔루션','효성티앤씨','코오롱인더','대한유화']},
+  '지주/복합':{f:'외국인 수급',s:['삼성물산','SK','LG','SK스퀘어','HD현대','한화']},
+  '조선/기계':{f:'원·달러 환율',s:['HD한국조선해양','HD현대중공업','한화오션','삼성중공업','두산에너빌리티','두산밥캣']},
+  '방산/항공':{f:'원·달러 환율',s:['한화에어로스페이스','LIG넥스원','현대로템','한국항공우주','한화시스템']},
+  '건설/건자재':{f:'한국 기준금리',s:['현대건설','GS건설','DL이앤씨','대우건설','HDC현대산업개발']},
+  '통신':{f:'CPI(물가)',s:['SK텔레콤','KT','LG유플러스']},
+  '유통/식음료':{f:'CPI(물가)',s:['CJ제일제당','오리온','KT&G','하이트진로','LG생활건강','아모레퍼시픽','롯데쇼핑','이마트','삼양식품']},
+  '엔터/미디어':{f:'CPI(물가)',s:['하이브','CJ ENM','스튜디오드래곤']},
+  '운송/물류':{f:'WTI 유가',s:['HMM','대한항공','팬오션','CJ대한통운']},
+  'IT서비스':{f:'AI·반도체 수요',s:['삼성SDS']}
+};
+
+const W0=window.innerWidth, H0=window.innerHeight;
+const cx0=W0*0.42, cy0=H0*0.5;
+const nodes=[], idmap=new Map();
+function add(label,type,extra){ const n=Object.assign({label,type,x:cx0+(Math.random()-.5)*400,y:cy0+(Math.random()-.5)*400,vx:0,vy:0,pulse:0},extra||{}); idmap.set(label,nodes.length); nodes.push(n); return n; }
+
+FORCES.forEach((l,i)=>{const a=(i/FORCES.length)*Math.PI*2; add(l,'force',{r:9,mass:6,x:cx0+Math.cos(a)*90,y:cy0+Math.sin(a)*90});});
+INST.forEach((l,i)=>{const a=(i/INST.length)*Math.PI*2; add(l,'inst',{r:8,mass:5,x:cx0+Math.cos(a)*230,y:cy0+Math.sin(a)*230});});
+PERS.forEach((l,i)=>{const a=(i/PERS.length)*Math.PI*2 - .5; add(l,'agent',{r:12,mass:7,x:cx0+Math.cos(a)*160,y:cy0-190+Math.sin(a)*60});});
+const HELD=new Set(['삼성전자','SK하이닉스','LG에너지솔루션','카카오','KB금융']);
+Object.entries(SECTORS).forEach(([sec,o],k)=>{
+  const a=(k/Object.keys(SECTORS).length)*Math.PI*2;
+  o.s.forEach(st=>{ add(st,'stock',{r:HELD.has(st)?5:3.6,mass:1,sector:sec,drive:o.f,held:HELD.has(st),x:cx0+Math.cos(a)*(300+Math.random()*140),y:cy0+Math.sin(a)*(300+Math.random()*140)}); });
+});
+
+/* ================= 엣지 ================= */
+const edges=[];
+function link(a,b,on,grow){ const ia=idmap.get(a),ib=idmap.get(b); if(ia==null||ib==null) return; edges.push({a:ia,b:ib,on:on!==false,grow:!!grow,hot:0}); }
+// 기관 → 지표
+[['미 연준','미 기준금리(FFR)'],['한국은행','한국 기준금리'],['ECB','미 국채 10년물'],['일본은행','원·달러 환율'],['기획재정부','외국인 수급'],['미 재무부','미 국채 10년물'],['금융위원회','한국 기준금리'],['IMF','CPI(물가)']].forEach(p=>link(p[0],p[1]));
+// 지표 ↔ 지표
+[['미 기준금리(FFR)','미 국채 10년물'],['미 기준금리(FFR)','원·달러 환율'],['WTI 유가','CPI(물가)'],['AI·반도체 수요','외국인 수급']].forEach(p=>link(p[0],p[1]));
+// 종목 → 섹터 구동 지표
+nodes.forEach(n=>{ if(n.type==='stock') link(n.label,n.drive); });
+// 인물(에이전트) → 관측/보유
+[['캐시 우드','AI·반도체 수요'],['캐시 우드','삼성전자'],['캐시 우드','SK하이닉스'],
+ ['하워드 막스','변동성(VIX)'],['하워드 막스','미 국채 10년물'],
+ ['레이 달리오','원·달러 환율'],['레이 달리오','한국 기준금리'],['레이 달리오','WTI 유가'],
+ ['워런 버핏','한국 기준금리'],['워런 버핏','KB금융'],['워런 버핏','삼성전자'],
+ ['리테일 군중','삼성전자'],['리테일 군중','SK하이닉스'],['리테일 군중','AI·반도체 수요']].forEach(p=>link(p[0],p[1]));
+// 시뮬 중 자라는 관계(역주입)
+link('원·달러 환율','외국인 수급',false,true);
+link('변동성(VIX)','AI·반도체 수요',false,true);
+link('변동성(VIX)','SK하이닉스',false,true);
+link('변동성(VIX)','삼성전자',false,true);
+
+/* ================= 캔버스 / 포스 시뮬 ================= */
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d'), tip=document.getElementById('tip');
+let VW,VH,dpr;
+function resize(){ const r=cv.parentElement.getBoundingClientRect(); dpr=window.devicePixelRatio||1; VW=r.width;VH=r.height; cv.width=VW*dpr;cv.height=VH*dpr; ctx.setTransform(dpr,0,0,dpr,0,0); }
+new ResizeObserver(resize).observe(cv.parentElement); resize();
+
+function physics(){
+  const cx=VW*0.42, cy=VH*0.5;
+  for(let i=0;i<nodes.length;i++){ const a=nodes[i];
+    for(let j=i+1;j<nodes.length;j++){ const b=nodes[j];
+      let dx=a.x-b.x, dy=a.y-b.y, d2=dx*dx+dy*dy+0.01;
+      if(d2<62500){ const f=380/d2, d=Math.sqrt(d2); const fx=dx/d*f, fy=dy/d*f;
+        a.vx+=fx/a.mass; a.vy+=fy/a.mass; b.vx-=fx/b.mass; b.vy-=fy/b.mass; } }
+  }
+  for(const e of edges){ if(!e.on) continue; const a=nodes[e.a], b=nodes[e.b];
+    let dx=b.x-a.x, dy=b.y-a.y, d=Math.sqrt(dx*dx+dy*dy)+.01;
+    const rest = a.type==='stock'||b.type==='stock' ? 46 : 150;
+    const f=(d-rest)*0.012; const fx=dx/d*f, fy=dy/d*f;
+    a.vx+=fx/a.mass; a.vy+=fy/a.mass; b.vx-=fx/b.mass; b.vy-=fy/b.mass; }
+  for(const n of nodes){ const g = n.type==='force'?0.012:0.004;
+    n.vx+=(cx-n.x)*g; n.vy+=(cy-n.y)*g;
+    n.vx*=0.86; n.vy*=0.86; n.x+=n.vx; n.y+=n.vy;
+    n.x=Math.max(16,Math.min(VW-16,n.x)); n.y=Math.max(16,Math.min(VH-16,n.y));
+    if(n.pulse>0) n.pulse*=0.94; }
+}
+for(let i=0;i<320;i++) physics(); // 워밍업
+
+let expanded=false;
+const COL={inst:'#3987e5',force:'#d95926',agent:'#9085e9',stock:'#7f93a8'};
+function draw(){
+  ctx.clearRect(0,0,VW,VH);
+  for(const e of edges){ if(!e.on) continue; const a=nodes[e.a], b=nodes[e.b];
+    if(!expanded && ((a.type==='stock'&&!a.held)||(b.type==='stock'&&!b.held))) continue;
+    const heat=Math.max(a.pulse,b.pulse,e.hot);
+    ctx.strokeStyle = e.grow ? `rgba(143,208,176,${0.25+heat*0.6})` : `rgba(120,140,165,${0.07+heat*0.5})`;
+    ctx.lineWidth = e.grow ? 1.4 : (0.6+heat*1.4);
+    ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+    if(e.hot>0) e.hot*=0.92;
+  }
+  const order={stock:0,inst:1,force:2,agent:3};
+  [...nodes].sort((p,q)=>order[p.type]-order[q.type]).forEach(n=>{
+    const c=COL[n.type];
+    const dim = (n.type==='stock' && !n.held && !expanded);
+    ctx.globalAlpha = dim?0.12:1;
+    if(!dim && n.pulse>0.05){ ctx.beginPath(); ctx.arc(n.x,n.y,n.r+6+n.pulse*10,0,7); ctx.fillStyle=hexA(c,0.18*n.pulse); ctx.fill(); }
+    ctx.beginPath();
+    if(n.type==='inst'){ const s=n.r; ctx.save(); ctx.translate(n.x,n.y); ctx.rotate(Math.PI/4); ctx.rect(-s,-s,s*2,s*2); ctx.restore(); }
+    else ctx.arc(n.x,n.y,n.r+ (n.pulse>0.05? n.pulse*3:0),0,7);
+    ctx.fillStyle=c; ctx.fill();
+    if(n.held){ ctx.lineWidth=2; ctx.strokeStyle='#f2b03a'; ctx.beginPath(); ctx.arc(n.x,n.y,n.r+3,0,7); ctx.stroke(); }
+    if(n.type==='agent'){ ctx.lineWidth=2; ctx.strokeStyle='#0e1116'; ctx.stroke(); ctx.beginPath(); ctx.arc(n.x,n.y,n.r+3.5,0,7); ctx.strokeStyle=hexA(c,0.7); ctx.lineWidth=1.5; ctx.stroke(); }
+    if(n.type!=='stock' || n.held){ ctx.fillStyle=n.type==='force'?'#f0c3a8':n.type==='agent'?'#d9d4fb':n.type==='inst'?'#bcd6f7':'#f2c98a';
+      ctx.font=(n.type==='agent'?'700 ':'600 ')+ (n.type==='agent'?12:n.type==='stock'?10:11)+'px Pretendard, sans-serif';
+      ctx.textAlign='center'; ctx.fillText(n.label, n.x, n.y - n.r - 6); }
+    ctx.globalAlpha=1;
+  });
+}
+function hexA(h,a){ const n=parseInt(h.slice(1),16); return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`; }
+(function loop(){ physics(); draw(); requestAnimationFrame(loop); })();
+
+/* hover */
+let mx=-9,my=-9;
+cv.addEventListener('mousemove',ev=>{ const r=cv.getBoundingClientRect(); mx=ev.clientX-r.left; my=ev.clientY-r.top;
+  let hit=null,best=1e9; for(const n of nodes){ const d=(n.x-mx)**2+(n.y-my)**2; if(d<Math.max(120,(n.r+5)**2)&&d<best){best=d;hit=n;} }
+  if(hit){ const T={inst:'기관',force:'매크로 지표',agent:'인물 · 에이전트',stock:'KOSPI 종목'}[hit.type];
+    tip.innerHTML=`<b>${hit.label}</b> &nbsp;<small>${T}${hit.sector?' · '+hit.sector:''}</small>`;
+    tip.style.left=(mx+14)+'px'; tip.style.top=(my+12)+'px'; tip.style.opacity=1; }
+  else tip.style.opacity=0;
+});
+cv.addEventListener('mouseleave',()=>tip.style.opacity=0);
+
+/* ================= 리플레이 ================= */
+const AV={ '워런 버핏':['버','#9085e9'],'레이 달리오':['달','#9085e9'],'캐시 우드':['우','#9085e9'],'하워드 막스':['막','#9085e9'],'리테일 군중':['군','#7f93a8'] };
+const STEPS=[
+ {t:'T0',who:'시스템',tag:'시작',text:'AI·반도체 랠리 국면. 세계가 정지 상태로 대기 중입니다.',sent:68,pulse:[],grow:[]},
+ {t:'T1',who:'🏛️ 미 연준(FOMC)',tag:'이벤트',text:'기준금리 동결 발표. 유동성 환경이 유지됩니다.',sent:71,pulse:['미 연준','미 기준금리(FFR)'],grow:[]},
+ {t:'T1',who:'캐시 우드',tag:'강세',text:'유동성이 우호적이다. AI 성장주 비중을 늘린다.',sent:75,pulse:['캐시 우드','AI·반도체 수요','삼성전자','SK하이닉스'],grow:[]},
+ {t:'T2',who:'📈 시장',tag:'이벤트',text:'SK하이닉스 HBM 실적 서프라이즈. 반도체 수요 기대 급등.',sent:81,pulse:['SK하이닉스','AI·반도체 수요','삼성전자'],grow:[]},
+ {t:'T2',who:'리테일 군중',tag:'FOMO',text:'지금 안 사면 늦는다 🚀 #반도체 #삼전 #가즈아',sent:86,pulse:['리테일 군중','삼성전자','SK하이닉스'],grow:[]},
+ {t:'T3',who:'💱 외환시장',tag:'이벤트',text:'원·달러 환율 1,400원 돌파. 외국인 수급이 흔들립니다.',sent:77,pulse:['원·달러 환율','외국인 수급'],grow:[['원·달러 환율','외국인 수급']]},
+ {t:'T3',who:'레이 달리오',tag:'중립',text:'한쪽 쏠림은 위험하다. 환율·사이클을 보고 분산한다.',sent:71,pulse:['레이 달리오','원·달러 환율','외국인 수급','WTI 유가'],grow:[]},
+ {t:'T4',who:'⚠️ 글로벌',tag:'변곡점',text:'글로벌 기술주 조정 + 차익실현. 변동성이 급등합니다.',sent:54,pulse:['변동성(VIX)','AI·반도체 수요'],grow:[['변동성(VIX)','AI·반도체 수요'],['변동성(VIX)','SK하이닉스'],['변동성(VIX)','삼성전자']]},
+ {t:'T4',who:'하워드 막스',tag:'경계',text:'사이클상 낙관이 과도했다. 위험은 지금 가장 크다.',sent:45,pulse:['하워드 막스','변동성(VIX)','미 국채 10년물'],grow:[]},
+ {t:'T5',who:'워런 버핏',tag:'신중',text:'기대가 이미 반영됐다. 안전마진이 없어 관망한다.',sent:42,pulse:['워런 버핏','KB금융'],grow:[]},
+ {t:'T5',who:'시스템',tag:'결말',text:'세계가 세 갈래로 갈라집니다 — 낙관 · 기준 · 위험.',sent:44,pulse:[],grow:[],cta:true}
+];
+let idx=0, playing=false, timer=null, lastSent=68;
+const feed=document.getElementById('feed'), mk=document.getElementById('mk'), sv=document.getElementById('sentiVal');
+
+function applyStep(s){
+  s.pulse.forEach(l=>{ const i=idmap.get(l); if(i!=null) nodes[i].pulse=1; });
+  s.grow.forEach(([a,b])=>{ const e=edges.find(e=>e.grow&&((nodes[e.a].label===a&&nodes[e.b].label===b)||(nodes[e.a].label===b&&nodes[e.b].label===a))); if(e){e.on=true;e.hot=1;} });
+  const flipped = lastSent>=50 && s.sent<50;
+  lastSent=s.sent;
+  mk.style.left=s.sent+'%';
+  const mood = s.sent>=65?'낙관':s.sent>=50?'중립':'불안';
+  sv.innerHTML = `${mood} ${s.sent}` + (flipped?' · <span class="flip">여론 반전 ⚡</span>':'');
+  if(feed.querySelector('.empty')) feed.innerHTML='';
+  const isAgent=AV[s.who];
+  const av = isAgent?isAgent[1] : (s.who.startsWith('시스템')?'#657283':'#3a4756');
+  const initial = isAgent?isAgent[0] : (s.who.match(/[🏛📈💱⚠]/)?s.who[0]:'·');
+  const el=document.createElement('div'); el.className='msg';
+  el.innerHTML=`<div class="av" style="background:${av};color:${isAgent?'#0b0f14':'#c3cdd9'}">${initial}</div>
+    <div class="b"><div class="who">${s.who}<span class="tag">${s.t} · ${s.tag}</span></div>
+    <div class="tx">${s.text}</div>
+    ${s.grow.length?`<div class="grown">＋ 그래프에 새 관계 ${s.grow.length}개 생성 (역주입)</div>`:''}
+    ${s.cta?'<a class="cta" href="./finverse-simulation.html">요약에서 3경로·내 트윈 결과 보기 →</a>':''}
+    </div>`;
+  feed.appendChild(el); feed.scrollTop=feed.scrollHeight;
+}
+function next(){ if(idx>=STEPS.length){ stop(); return; } applyStep(STEPS[idx++]); }
+function stop(){ playing=false; clearTimeout(timer); document.getElementById('play').textContent='▶ 재생'; }
+function play(){ if(idx>=STEPS.length) reset(); playing=true; document.getElementById('play').textContent='⏸ 일시정지';
+  (function run(){ if(!playing) return; next(); if(idx<STEPS.length) timer=setTimeout(run,2400); else stop(); })(); }
+function reset(){ stop(); idx=0; lastSent=68; feed.innerHTML='<div class="empty">▶ 재생을 눌러 세계를 깨우세요.</div>';
+  mk.style.left='68%'; sv.textContent='낙관 68 · 랠리 국면';
+  edges.forEach(e=>{ if(e.grow) e.on=false; e.hot=0; }); nodes.forEach(n=>n.pulse=0); }
+
+document.getElementById('play').onclick=()=>{ playing?stop():play(); };
+document.getElementById('step').onclick=()=>{ stop(); next(); };
+document.getElementById('reset').onclick=reset;
+document.getElementById('expand').onclick=function(){ expanded=!expanded; this.textContent=expanded?'🎯 내 종목만 보기':'🌍 전체 세계 펼치기'; };
+</script>
+</body>
+</html>
