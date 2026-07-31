@@ -1,16 +1,18 @@
 <!doctype html>
 <html lang="ko">
 <head>
+<!-- FINVERSE-DOC · AI 어시스트로 작성한 프로토타입 (원본 소스코드와 구분) -->
+<!-- 구조 근거: PRD v0.5 · 결정 #14(4층/C→B→A)·#15(섹터)·#18(온디맨드+캐시)·#19(대가=V3 전용) -->
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>FINVERSE · 시뮬레이션 화면 프로토타입</title>
+<title>FINVERSE · C→B→A 화면 흐름 프로토타입</title>
 <style>
   :root{
     --bg:#f5f6f7; --surface:#ffffff; --surface-2:#fafafa;
     --ink:#18181b; --ink2:#5b5f66; --ink3:#9299a1;
     --line:#e8eaed; --line-2:#eef0f2;
-    --up:#e34948;        /* 상승(빨강, 한국 관례) */
-    --down:#2a78d6;      /* 하락(파랑) */
+    --up:#e34948;        /* 상승/촉진(빨강, 한국 관례) */
+    --down:#2a78d6;      /* 하락/억제(파랑) */
     --neutral:#8a8a83;
     --dark:#141518;
     --radius:16px;
@@ -18,26 +20,22 @@
   }
   *{box-sizing:border-box}
   html,body{margin:0}
-  body{
-    background:var(--bg); color:var(--ink);
+  body{background:var(--bg);color:var(--ink);
     font-family:'Pretendard','Pretendard Variable',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;
-    -webkit-font-smoothing:antialiased; line-height:1.5;
-    padding:0 16px 64px;
-  }
+    -webkit-font-smoothing:antialiased;line-height:1.5;padding:0 16px 64px}
   .wrap{max-width:940px;margin:0 auto}
 
-  /* ---- top bar ---- */
-  .topbar{position:sticky;top:0;z-index:20;background:rgba(245,246,247,.86);backdrop-filter:saturate(1.2) blur(8px);
-    display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:16px 0 14px;border-bottom:1px solid var(--line)}
+  .topbar{position:sticky;top:0;z-index:20;background:rgba(245,246,247,.88);backdrop-filter:saturate(1.2) blur(8px);
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:16px 0 14px;border-bottom:1px solid var(--line)}
   .brand{display:flex;align-items:center;gap:9px;font-weight:800;letter-spacing:-.02em;font-size:17px}
   .brand .mark{width:26px;height:26px;border-radius:8px;background:var(--dark);color:#fff;display:grid;place-items:center;font-size:14px;font-weight:800}
-  .steps{display:flex;gap:6px;margin-left:4px;flex-wrap:wrap}
+  .steps{display:flex;gap:6px;flex-wrap:wrap}
   .step{border:1px solid var(--line);background:var(--surface);color:var(--ink2);border-radius:999px;
-    padding:7px 13px;font-size:13px;font-weight:600;cursor:pointer;display:flex;gap:7px;align-items:center;transition:.15s}
-  .step .n{width:18px;height:18px;border-radius:50%;background:var(--line-2);color:var(--ink3);display:grid;place-items:center;font-size:11px;font-weight:700}
+    padding:7px 13px;font-size:13px;font-weight:600;cursor:pointer;display:flex;gap:7px;align-items:center;transition:.15s;font-family:inherit}
+  .step .n{width:19px;height:19px;border-radius:50%;background:var(--line-2);color:var(--ink3);display:grid;place-items:center;font-size:10.5px;font-weight:800}
   .step:hover{border-color:#d5d8dc}
   .step.active{background:var(--dark);color:#fff;border-color:var(--dark)}
-  .step.active .n{background:rgba(255,255,255,.22);color:#fff}
+  .step.active .n{background:rgba(255,255,255,.24);color:#fff}
   .protoTag{margin-left:auto;font-size:11px;color:var(--ink3);border:1px dashed var(--line);border-radius:999px;padding:5px 10px;font-weight:600}
 
   .screen{display:none;padding-top:22px;animation:fade .25s ease}
@@ -50,19 +48,10 @@
   .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
   .pad{padding:18px}
   .row{display:flex;gap:14px}
-  .grid{display:grid;gap:14px}
-
-  /* ---- S1 ---- */
-  .kospi{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
-  .kospi b{font-size:30px;letter-spacing:-.02em}
-  .kospi .chg{color:var(--up);font-weight:800;font-size:16px}
-  .conn{display:grid;grid-template-columns:1fr 1fr;gap:10px 22px;margin-top:14px}
-  .conn div{display:flex;justify-content:space-between;font-size:13.5px;border-bottom:1px dashed var(--line);padding-bottom:8px}
-  .conn small{color:var(--ink3)}
+  .section-h{font-weight:800;font-size:15px;margin:0 0 12px;letter-spacing:-.01em}
+  .section-h small{font-weight:600;color:var(--ink3);font-size:12px;margin-left:7px}
+  .mt16{margin-top:16px}
   .up{color:var(--up)} .down{color:var(--down)}
-  .eventcard{margin-top:16px;border:1px solid var(--line);border-radius:14px;padding:16px 18px;display:flex;gap:16px;align-items:center;justify-content:space-between;background:linear-gradient(180deg,#fff, #fbfbfc)}
-  .eventcard .h{font-weight:800;font-size:16px;letter-spacing:-.01em}
-  .eventcard .d{color:var(--ink2);font-size:13px;margin-top:3px}
 
   .btn{cursor:pointer;border:0;border-radius:11px;font-weight:700;font-family:inherit;font-size:14px;padding:12px 18px;
     background:var(--dark);color:#fff;display:inline-flex;align-items:center;gap:9px;transition:.15s;white-space:nowrap}
@@ -71,59 +60,128 @@
   .btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
   .arrow{font-size:16px;line-height:1}
 
-  /* ---- S2 ---- */
-  .badge{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:#1f7a55;background:#e7f6ef;border:1px solid #cdeadd;border-radius:999px;padding:5px 11px}
-  .section-h{font-weight:800;font-size:15px;margin:0 0 12px;letter-spacing:-.01em}
-  .gurus{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-  .guru{border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--surface-2)}
-  .guru .nm{font-weight:800;font-size:14px}
-  .guru .lens{font-size:11.5px;color:var(--ink3);margin-top:1px}
-  .chip{display:inline-block;font-size:11.5px;font-weight:700;border-radius:999px;padding:3px 9px;margin:9px 0 8px}
+  /* ---- V1 ---- */
+  .kospi{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+  .kospi b{font-size:30px;letter-spacing:-.02em}
+  .kospi .chg{color:var(--up);font-weight:800;font-size:16px}
+  .inds{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:14px}
+  .ind{border:1px solid var(--line);border-radius:11px;padding:9px 11px}
+  .ind span{font-size:11px;color:var(--ink3);font-weight:650;display:block}
+  .ind b{font-size:14px;display:block;margin-top:2px}
+  .ind i{font-style:normal;font-size:11.5px;font-weight:700}
+
+  .heat{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .hs{border:1px solid var(--line);border-radius:11px;padding:10px 12px}
+  .hs .nm{font-size:12.5px;font-weight:700}
+  .hs .v{font-size:15px;font-weight:800;margin-top:2px}
+  .hs .dr{font-size:10.5px;color:var(--ink3);margin-top:3px}
+
+  .report{border-left:3px solid var(--line);padding:2px 0 2px 13px;font-size:13.5px;color:var(--ink2);line-height:1.7}
+  .report b{color:var(--ink)}
+  .cite{display:inline-block;font-family:ui-monospace,Menlo,monospace;font-size:10.5px;color:var(--ink3);
+    border:1px solid var(--line);border-radius:5px;padding:0 5px;margin:0 2px;cursor:help}
+
+  .evt{border:1px solid var(--line);border-radius:14px;padding:15px 17px;display:flex;gap:14px;align-items:center;
+    justify-content:space-between;background:linear-gradient(180deg,#fff,#fbfbfc);margin-top:10px;flex-wrap:wrap}
+  .evt .h{font-weight:800;font-size:15px;letter-spacing:-.01em}
+  .evt .d{color:var(--ink2);font-size:12.5px;margin-top:3px}
+  .evt .src{color:var(--ink3);font-size:11px;margin-top:5px}
+  .tag{display:inline-block;font-size:10.5px;font-weight:750;border-radius:999px;padding:2px 8px;margin-right:6px}
+  .tag.cached{background:#e7f6ef;color:#1f7a55}
+  .tag.gen{background:#fbf1dc;color:#8a6300}
+  .tag.soon{background:#eef0f2;color:#566270}
+
+  /* ---- V2 ---- */
+  .genbar{height:5px;border-radius:99px;background:var(--line-2);overflow:hidden;margin-top:10px}
+  .genbar i{display:block;height:100%;width:0;background:var(--dark);transition:width .35s ease}
+  .agents{display:flex;gap:7px;flex-wrap:wrap;margin-top:4px}
+  .ag{font-size:11.5px;font-weight:700;border-radius:999px;padding:4px 10px;border:1px solid var(--line);background:var(--surface-2)}
+  .ag.macro{color:#a2481f;border-color:#f0dcd1;background:#fdf4ef}
+  .ag.sector{color:#4c40a8;border-color:#ddd9f5;background:#f4f2fd}
+
+  .tl{position:relative;margin-top:4px;padding-left:20px}
+  .tl:before{content:'';position:absolute;left:5px;top:6px;bottom:6px;width:2px;background:var(--line)}
+  .tstep{position:relative;padding:9px 0;opacity:.28;transition:opacity .35s}
+  .tstep.on{opacity:1}
+  .tstep:before{content:'';position:absolute;left:-19px;top:15px;width:9px;height:9px;border-radius:50%;background:var(--line);border:2px solid #fff}
+  .tstep.on:before{background:var(--dark)}
+  .tstep .who{font-size:12.5px;font-weight:800}
+  .tstep .who em{font-style:normal;font-size:10.5px;font-weight:700;color:var(--ink3);margin-left:6px}
+  .tstep .tx{font-size:13px;color:var(--ink2);margin-top:2px;line-height:1.55}
+  .tstep .rl{margin-top:5px}
+
+  .fac{display:grid;grid-template-columns:120px 1fr 40px;align-items:center;gap:9px;margin:6px 0;font-size:12.5px}
+  .fac .nm{color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .fac.mine .nm{color:var(--ink);font-weight:750}
+  .fac .tr{position:relative;height:16px;background:var(--line-2);border-radius:5px;overflow:hidden}
+  .fac .tr i{position:absolute;top:0;bottom:0;left:50%;width:1px;background:#d6dade}
+  .fac .fl{position:absolute;top:2px;bottom:2px;border-radius:3px;transition:width .5s ease}
+  .fac .vl{text-align:right;font-weight:800;font-size:12px;color:var(--ink3)}
+
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--ink2);margin-bottom:8px}
+  .legend span{display:inline-flex;align-items:center;gap:7px;font-weight:600}
+  .legend i{width:16px;height:9px;border-radius:3px;display:inline-block}
+  svg.forecast{width:100%;height:auto;display:block}
+
+  /* ---- V3 ---- */
+  .port{display:flex;gap:8px;flex-wrap:wrap}
+  .pchip{font-size:12px;font-weight:700;border:1px solid var(--line);border-radius:999px;padding:5px 11px;background:var(--surface-2)}
+  .pchip small{color:var(--ink3);font-weight:600;margin-left:4px}
+
+  .gurus{display:grid;grid-template-columns:repeat(4,1fr);gap:11px}
+  .guru{border:1.5px solid var(--line);border-radius:14px;padding:13px;background:var(--surface-2);cursor:pointer;
+    transition:.14s;font-family:inherit;text-align:left}
+  .guru:hover{border-color:#c7ccd2}
+  .guru.sel{border-color:var(--dark);background:#fff}
+  .guru .nm{font-weight:800;font-size:13.5px}
+  .guru .lens{font-size:11px;color:var(--ink3);margin-top:1px}
+  .chip{display:inline-block;font-size:11px;font-weight:750;border-radius:999px;padding:3px 9px;margin:8px 0 7px}
   .chip.bull{background:#fdecea;color:#c0362f}
   .chip.watch{background:#eaf1fc;color:#1f5fb8}
   .chip.hold{background:#eef0f2;color:#566270}
   .chip.neut{background:#fbf1dc;color:#8a6300}
-  .guru .q{font-size:12.5px;color:var(--ink);line-height:1.5}
-  .disc{margin-top:11px;font-size:11.5px;color:var(--ink3);display:flex;gap:6px;align-items:center}
+  .guru .q{font-size:12px;color:var(--ink2);line-height:1.5}
+  .disc{margin-top:11px;font-size:11.5px;color:var(--ink3);line-height:1.6}
 
-  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--ink2);margin-bottom:6px}
-  .legend span{display:inline-flex;align-items:center;gap:7px;font-weight:600}
-  .legend i{width:16px;height:3px;border-radius:2px;display:inline-block}
-  .chartbox{width:100%;overflow-x:auto}
-  svg.forecast{width:100%;height:auto;display:block}
-
-  .choices{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:6px}
-  .choice{cursor:pointer;border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:14px 10px;text-align:center;font-weight:700;font-size:13.5px;transition:.14s;font-family:inherit;color:var(--ink)}
-  .choice small{display:block;font-weight:500;color:var(--ink3);font-size:11px;margin-top:3px}
+  .choices{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin-top:6px}
+  .choice{cursor:pointer;border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:13px 8px;text-align:center;
+    font-weight:750;font-size:13px;transition:.14s;font-family:inherit;color:var(--ink)}
+  .choice small{display:block;font-weight:500;color:var(--ink3);font-size:10.5px;margin-top:3px}
   .choice:hover{border-color:#c7ccd2}
   .choice.sel{border-color:var(--dark);background:var(--dark);color:#fff}
-  .choice.sel small{color:rgba(255,255,255,.7)}
+  .choice.sel small{color:rgba(255,255,255,.72)}
+  .why{width:100%;margin-top:11px;border:1px solid var(--line);border-radius:11px;padding:11px 13px;font-size:13.5px;
+    font-family:inherit;color:var(--ink);resize:none}
+  .why:focus{outline:none;border-color:#c7ccd2}
 
-  /* ---- S3 ---- */
-  .meter{margin:14px 0}
+  .meter{margin:13px 0}
   .meter .lab{display:flex;justify-content:space-between;font-size:13px;margin-bottom:7px}
-  .meter .lab b{font-weight:700}
+  .meter .lab b{font-weight:750}
   .track{position:relative;height:12px;border-radius:999px;background:var(--line-2);overflow:hidden}
   .track .before{position:absolute;inset:0 auto 0 0;background:#cfd3d8;border-radius:999px}
   .track .after{position:absolute;inset:0 auto 0 0;border-radius:999px;transition:width .5s ease}
-  .delta{font-size:12px;font-weight:700}
+  .delta{font-size:12px;font-weight:750}
   .vs{border:1px solid var(--line);border-radius:14px;padding:16px 18px;background:var(--surface-2)}
   .vs .big{font-size:15px;font-weight:800;margin:2px 0 10px}
   .pill{display:inline-block;font-size:12px;font-weight:700;border-radius:999px;padding:4px 11px;margin:3px 6px 3px 0}
   .pill.warn{background:#fdecea;color:#c0362f}
   .pill.good{background:#e7f6ef;color:#1f7a55}
   .pill.info{background:#eef0f2;color:#566270}
-  .kv{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+  .kv{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
   .kv .item{flex:1;min-width:150px;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
-  .kv .item span{font-size:11.5px;color:var(--ink3);font-weight:600}
+  .kv .item span{font-size:11.5px;color:var(--ink3);font-weight:650}
   .kv .item b{display:block;font-size:15px;margin-top:3px}
 
+  .calc{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;
+    font-size:12px;color:var(--ink2);line-height:1.75;margin-top:12px}
+  .calc code{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:var(--ink)}
+  .warnbox{font-size:11.5px;color:#8a6300;background:#fdf8ec;border:1px solid #f0e2c0;border-radius:10px;
+    padding:9px 12px;margin-top:12px;line-height:1.6}
   .foot{margin-top:22px;font-size:11.5px;color:var(--ink3);text-align:center;line-height:1.7}
-  .mt24{margin-top:24px}.mt16{margin-top:16px}
-  @media(max-width:720px){
+  @media(max-width:760px){
     .gurus{grid-template-columns:repeat(2,1fr)}
     .choices{grid-template-columns:repeat(2,1fr)}
-    .conn{grid-template-columns:1fr}
+    .inds,.heat{grid-template-columns:repeat(2,1fr)}
   }
 </style>
 </head>
@@ -131,150 +189,208 @@
 <div class="wrap">
   <div class="topbar">
     <div class="brand"><span class="mark">F</span>FINVERSE</div>
-    <div class="steps" id="steps">
-      <button class="step active" data-go="s1"><span class="n">1</span>시장 인사이트</button>
-      <button class="step" data-go="s2"><span class="n">2</span>시뮬레이션</button>
-      <button class="step" data-go="s3"><span class="n">3</span>나 트윈</button>
+    <div class="steps">
+      <button class="step active" data-go="v1"><span class="n">C</span>시장 인사이트</button>
+      <button class="step" data-go="v2"><span class="n">B</span>이벤트 시뮬</button>
+      <button class="step" data-go="v3"><span class="n">A</span>나 트윈</button>
     </div>
-    <span class="protoTag">프로토타입 · Draft</span>
+    <span class="protoTag">프로토타입 · PRD v0.5</span>
   </div>
 
-  <!-- ================= S1 ================= -->
-  <section class="screen on" id="s1">
-    <div class="eyebrow">Market Insight</div>
-    <h1 class="title">오늘의 시장을 이해하고, 다음 움직임을 살펴보세요</h1>
-    <p class="sub">2026.07.27 KRX 장마감 기준 · 친숙한 진입 화면입니다.</p>
+  <!-- ==================== V1 · 시장 인사이트 (C) ==================== -->
+  <section class="screen on" id="v1">
+    <div class="eyebrow">C · Market Insight</div>
+    <h1 class="title">오늘의 세계관</h1>
+    <p class="sub">Base Model 2026-07-31 기준 · 매일 1회 재구성되는 읽기전용 세계관입니다.</p>
 
     <div class="card pad mt16">
       <div class="kospi"><span class="eyebrow">KOSPI</span><b>6,755.75</b><span class="chg">▲ +0.97%</span></div>
-      <div class="conn">
-        <div><span>삼성전자</span><span class="up">80,700 ▲1.51%</span></div>
-        <div><span>SK하이닉스</span><span class="up">186,500 ▲2.21%</span></div>
-        <div><span>원·달러 환율</span><span class="down">1,336.80 ▼0.35%</span></div>
-        <div><span>외국인 수급</span><span class="down">-1,842억 순매도</span></div>
-      </div>
-
-      <div class="eventcard">
-        <div>
-          <div class="h">🔥 AI 반도체 랠리 과열</div>
-          <div class="d">실적 발표를 앞두고 기대가 가격에 크게 반영됐습니다. 이 사건이 앞으로 어떻게 흘러갈까요?</div>
-        </div>
-        <button class="btn" data-go="s2">이 사건을 시뮬레이션 <span class="arrow">→</span></button>
+      <div class="inds">
+        <div class="ind"><span>미국채 10년물</span><b>4.31%</b><i class="up">▲ +0.09%p</i></div>
+        <div class="ind"><span>원/달러 환율</span><b>1,336.80</b><i class="down">▼ -0.35%</i></div>
+        <div class="ind"><span>WTI 유가</span><b>$78.40</b><i class="up">▲ +1.8%</i></div>
+        <div class="ind"><span>외국인 수급</span><b>-1,842억</b><i class="down">순매도</i></div>
       </div>
     </div>
-    <p class="foot">S1은 대부분 구현돼 있습니다. 이 프로토타입은 신규 화면인 <b>S2 시뮬레이션</b>과 <b>S3 나 트윈</b>에 초점을 둡니다.</p>
+
+    <div class="card pad mt16">
+      <p class="section-h">섹터 9개 <small>오늘의 등락 · 괄호는 이 섹터의 1차 동인</small></p>
+      <div class="heat" id="heat"></div>
+    </div>
+
+    <div class="card pad mt16">
+      <p class="section-h">일간 인사이트 리포트 <small>관계DB를 인용해 자동 생성</small></p>
+      <div class="report">
+        미국채 10년물이 <b>4.31%</b>로 연중 최고를 경신했습니다. 할인율에 민감한
+        <b>인터넷·SW</b>와 <b>헬스케어</b>가 가장 크게 밀렸고<span class="cite" title="R-111 · R-151">R-111·R-151</span>,
+        같은 금리 상승이 <b>금융</b>에는 장단기 금리차 확대로 작용해 홀로 상승했습니다<span class="cite" title="R-142 · 미국채10년물 → 금융 (+중)">R-142</span>.
+        <b>반도체</b>는 이익 가시성 덕에 성장주 평균보다 낙폭이 작았습니다<span class="cite" title="R-103 · 미국채10년물 → 반도체 (−중)">R-103</span>.
+      </div>
+    </div>
+
+    <div class="card pad mt16">
+      <p class="section-h">뉴스 이벤트 카드 <small>클릭하면 오늘의 세계관 위에서 시뮬레이션이 생성됩니다</small></p>
+
+      <div class="evt">
+        <div>
+          <div><span class="tag cached">캐시됨 · 즉시</span><span class="h">미 10년물 4.3% 돌파, 연중 최고</span></div>
+          <div class="d">국채 발행 물량 확대와 인플레 기대가 겹치며 장기금리가 급등했습니다.</div>
+          <div class="src">연합뉴스 · 07-31 08:12 · 관련 매크로: 미국채10년물 · 미 재무부</div>
+        </div>
+        <button class="btn" data-card="us10y">시뮬레이션 보기 <span class="arrow">→</span></button>
+      </div>
+
+      <div class="evt">
+        <div>
+          <div><span class="tag gen">미생성</span><span class="h">OPEC+ 감산 연장 합의</span></div>
+          <div class="d">공급 축소가 유가를 자극하면 에너지·소재와 운송에 상반된 압력이 갑니다.</div>
+          <div class="src">Reuters · 07-31 06:40 · 관련 매크로: WTI 유가 · OPEC+</div>
+        </div>
+        <button class="btn ghost" data-card="wti">생성하고 보기 <span class="arrow">→</span></button>
+      </div>
+
+      <div class="evt" style="opacity:.62">
+        <div>
+          <div><span class="tag soon">예정 · D-3</span><span class="h">한국은행 금융통화위원회</span></div>
+          <div class="d">기준금리 결정. 금융과 건설이 정반대로 반응하는 대표 이벤트입니다.</div>
+          <div class="src">경제 캘린더 · 08-03 · 관련 매크로: 한국 기준금리 · 한국은행</div>
+        </div>
+        <button class="btn ghost" disabled>발표 후 생성</button>
+      </div>
+    </div>
+
+    <p class="foot">하루 생성량 = Base Model 1회 + 이벤트 카드 5~10회. 같은 카드는 한 번만 생성하고 이후 모든 사용자에게 캐시로 서빙합니다.</p>
   </section>
 
-  <!-- ================= S2 ================= -->
-  <section class="screen" id="s2">
+  <!-- ==================== V2 · 이벤트 시뮬 (B) ==================== -->
+  <section class="screen" id="v2">
     <div class="row" style="align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px">
       <div>
-        <div class="eyebrow">Simulation</div>
-        <h1 class="title">AI 반도체 랠리 → 변곡점</h1>
+        <div class="eyebrow">B · Event Simulation</div>
+        <h1 class="title" id="v2title">미 10년물 4.3% 돌파</h1>
+        <p class="sub" id="v2sub">2026-07-31 세계관 위에서 생성 · 캐시 키 <code style="font-size:12px">evt-us10y @ 2026-07-31</code></p>
       </div>
-      <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
-        <span class="badge">🎬 미리 구운 시나리오 · 페르소나 토론 결과</span>
-        <a class="btn ghost" href="./finverse-world.html" style="text-decoration:none;padding:9px 14px;font-size:13px">🌐 가상세계 그래프에서 보기 <span class="arrow">→</span></a>
-      </div>
+      <a class="btn ghost" href="./finverse-world.html" style="text-decoration:none">🌐 세계관 그래프에서 보기 <span class="arrow">→</span></a>
     </div>
 
-    <!-- 대가 4인 -->
-    <div class="card pad mt16">
-      <p class="section-h">대가 4인은 이 사건을 이렇게 봅니다</p>
-      <div class="gurus">
-        <div class="guru">
-          <div class="nm">워런 버핏</div><div class="lens">가치 · 안전마진</div>
-          <span class="chip hold">신중 · 관망</span>
-          <div class="q">"가격이 이미 기대를 반영했다면 안전마진이 없습니다. 저는 관망하겠습니다."</div>
-        </div>
-        <div class="guru">
-          <div class="nm">레이 달리오</div><div class="lens">매크로 · 분산</div>
-          <span class="chip neut">중립 · 균형</span>
-          <div class="q">"한 자산에 쏠리는 건 위험합니다. 금리·환율 사이클을 보고 분산으로 균형을 잡습니다."</div>
-        </div>
-        <div class="guru">
-          <div class="nm">캐시 우드</div><div class="lens">혁신 · 성장</div>
-          <span class="chip bull">강세 · 매수</span>
-          <div class="q">"AI 혁신은 이제 시작입니다. 단기 조정은 오히려 축적의 기회로 봅니다."</div>
-        </div>
-        <div class="guru">
-          <div class="nm">하워드 막스</div><div class="lens">리스크 · 사이클</div>
-          <span class="chip watch">경계 · 과열</span>
-          <div class="q">"사이클상 낙관이 과도한 구간입니다. 위험은 모두가 안전하다 느낄 때 가장 큽니다."</div>
-        </div>
-      </div>
-      <div class="disc">⚠ 실존 인물의 실제 발언이 아니며, 공개된 투자 원칙을 학습해 재구성한 교육용 시뮬레이션입니다.</div>
+    <div class="card pad mt16" id="genCard" style="display:none">
+      <p class="section-h" id="genTitle">시뮬레이션 생성 중…</p>
+      <div style="font-size:13px;color:var(--ink2)" id="genStep">오늘의 Base Model 로딩</div>
+      <div class="genbar"><i id="genFill"></i></div>
+      <p style="font-size:11.5px;color:var(--ink3);margin:10px 0 0">
+        최초 클릭 1회만 생성합니다. 완료 후에는 같은 카드·같은 날짜면 모든 사용자에게 캐시로 서빙됩니다.</p>
     </div>
 
-    <!-- 3경로 -->
-    <div class="card pad mt16">
-      <p class="section-h">낙관 · 기준 · 위험 — 세 갈래 예상 경로</p>
-      <div class="legend">
-        <span><i style="background:var(--up)"></i>낙관 <b class="up">+6.8%</b></span>
-        <span><i style="background:var(--neutral)"></i>기준 <b style="color:var(--neutral)">-0.5%</b></span>
-        <span><i style="background:var(--down)"></i>위험 <b class="down">-4.2%</b></span>
-        <span style="color:var(--ink3);font-weight:500">· 향후 30일 · 신뢰구간 70%</span>
+    <div id="v2body">
+      <div class="card pad mt16">
+        <p class="section-h">참여 에이전트 <small>매크로 · 섹터만 참여합니다</small></p>
+        <div class="agents" id="agents"></div>
+        <p class="disc">투자 대가는 이 시뮬레이션에 참여하지 않습니다. 여기는 <b>시장이 어떻게 반응하는가</b>를 관찰하는 화면이고,
+          대가의 관점은 <b>나 트윈(A)</b>에서 참고 장치로 쓰입니다.</p>
       </div>
-      <div class="chartbox"><div id="chart"></div></div>
-    </div>
 
-    <!-- 분기 -->
-    <div class="card pad mt16">
-      <p class="section-h">🔀 변곡점 — 당신이라면?</p>
-      <div class="choices" id="choices">
-        <button class="choice" data-choice="buy">더 산다<small>비중 확대</small></button>
-        <button class="choice" data-choice="hold">유지<small>그대로</small></button>
-        <button class="choice" data-choice="realize">일부 실현<small>위험 축소</small></button>
-        <button class="choice" data-choice="diversify">분산<small>쏠림 완화</small></button>
+      <div class="card pad mt16">
+        <p class="section-h">타임라인 <small>에이전트 상호작용 트레이스 · 활성화된 관계 표시</small></p>
+        <div class="tl" id="tl"></div>
       </div>
-      <div class="row mt16" style="justify-content:flex-end">
-        <button class="btn" id="toTwin" data-go="s3" disabled>이 결과를 내 트윈에 적용 <span class="arrow">→</span></button>
+
+      <div class="card pad mt16">
+        <p class="section-h">섹터별 충격 팩터 <small>나 트윈(A)의 계산 입력이 되는 값</small></p>
+        <div id="facs"></div>
+        <div class="warnbox">⚠ <b>−3 ~ +3 상대 영향도</b>이며 수익률·가격이 아닙니다. 강도(강/중/약)는 실증 전 초안값입니다.<br>표시된 값은 이 지표의 <b>직접 관계(drives)</b>만 반영합니다. 타임라인이 보여주는 <b>간접 경로</b>(예: 유가 → CPI → 소비재, 미10년물 → 외국인수급 → 전 섹터)의 전파 규칙은 <b>미확정</b>이라 팩터에 아직 넣지 않았습니다.</div>
+      </div>
+
+      <div class="card pad mt16">
+        <p class="section-h">30일 경로 <small>단일 수치가 아니라 범위로 제시합니다</small></p>
+        <div class="legend">
+          <span><i style="background:#f3c9c5"></i>낙관 <b class="up">+2.0 ~ +5.5%</b></span>
+          <span><i style="background:#e3e3df"></i>기준 <b style="color:var(--neutral)">−1.5 ~ +1.5%</b></span>
+          <span><i style="background:#c6dbf5"></i>위험 <b class="down">−6.5 ~ −2.5%</b></span>
+          <span style="color:var(--ink3);font-weight:500">· 신뢰구간 70%</span>
+        </div>
+        <div id="chart"></div>
+      </div>
+
+      <div class="card pad mt16" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+        <div style="font-size:13.5px;color:var(--ink2)">여기까지가 <b>정보제공</b>입니다. 이제 이 사건 앞에서 <b>당신의 판단</b>을 시험해 보세요.</div>
+        <button class="btn" data-go="v3">내 트윈에 적용 <span class="arrow">→</span></button>
       </div>
     </div>
-    <p class="foot">예상 수익이 아니라 <b>전제 · 최대 위험 · 목표 안정성 · 선택하지 않은 대안</b>을 비교하도록 설계합니다.</p>
+    <p class="foot">단일 정답을 제시하지 않습니다. 세 경로 모두 전제 조건과 함께 제시합니다.</p>
   </section>
 
-  <!-- ================= S3 ================= -->
-  <section class="screen" id="s3">
-    <div class="eyebrow">My Financial Twin</div>
-    <h1 class="title">이 선택이 나에게 준 영향</h1>
+  <!-- ==================== V3 · 나 트윈 (A) ==================== -->
+  <section class="screen" id="v3">
+    <div class="eyebrow">A · My Financial Twin</div>
+    <h1 class="title">이 사건 앞에서, 나는</h1>
     <p class="sub">가상 프로필 기준 · 실제 계좌 연동 없이 체험합니다.</p>
 
     <div class="card pad mt16">
-      <p class="section-h">내 목표에 준 영향 <span style="color:var(--ink3);font-weight:600;font-size:12px">(before → after)</span></p>
-      <div class="meter">
-        <div class="lab"><b>전세자금 목표 안정성</b><span class="delta" id="d1"></span></div>
-        <div class="track"><div class="before" id="b1"></div><div class="after" id="a1"></div></div>
-      </div>
-      <div class="meter">
-        <div class="lab"><b>위험자산 노출</b><span class="delta" id="d2"></span></div>
-        <div class="track"><div class="before" id="b2"></div><div class="after" id="a2"></div></div>
-      </div>
+      <p class="section-h">내 포트폴리오 <small>관련 섹터만 하이라이트됩니다</small></p>
+      <div class="port" id="port"></div>
+      <div class="calc" id="calcBox"></div>
     </div>
 
     <div class="card pad mt16">
-      <p class="section-h">나 vs 대가 — 당신의 이번 판단</p>
-      <div class="vs">
-        <div class="big">당신의 선택: <span id="myChoice">—</span></div>
-        <div class="kv">
-          <div class="item"><span>가장 가까운 대가</span><b id="closest">—</b></div>
-          <div class="item"><span>반대편 대가</span><b id="opposite">—</b></div>
+      <p class="section-h">대표 투자자라면? <small>눌러서 관점을 바꿔 보세요 · 참고용 장치</small></p>
+      <div class="gurus" id="gurus"></div>
+      <div class="disc">⚠ 실존 인물의 실제 발언이 아니며, 공개된 투자 원칙을 학습해 재구성한 <b>교육용 시뮬레이션</b>입니다.
+        상품을 추천하지 않으며 어떤 선택도 정답으로 제시하지 않습니다.</div>
+    </div>
+
+    <div class="card pad mt16">
+      <p class="section-h">🔀 당신이라면? <small>선택한 뒤 이유를 한 줄로 적어 주세요</small></p>
+      <div class="choices" id="choices">
+        <button class="choice" data-c="buy">더 산다<small>비중 확대</small></button>
+        <button class="choice" data-c="hold">유지<small>그대로</small></button>
+        <button class="choice" data-c="realize">일부 실현<small>위험 축소</small></button>
+        <button class="choice" data-c="diversify">분산<small>쏠림 완화</small></button>
+        <button class="choice" data-c="watch">지켜본다<small>결정 보류</small></button>
+      </div>
+      <textarea class="why" id="why" rows="2" placeholder="왜 그렇게 판단하셨나요? (예: 장기 성장은 훼손되지 않았다고 봐서)"></textarea>
+      <div class="row mt16" style="justify-content:flex-end">
+        <button class="btn" id="submit" disabled>결과 보기 <span class="arrow">→</span></button>
+      </div>
+    </div>
+
+    <div id="result" style="display:none">
+      <div class="card pad mt16">
+        <p class="section-h">내 목표에 준 영향 <small>섹터 충격 팩터 × 내 보유 비중 (결정론적 계산)</small></p>
+        <div class="meter">
+          <div class="lab"><b>전세자금 목표 안정성</b><span class="delta" id="d1"></span></div>
+          <div class="track"><div class="before" id="b1"></div><div class="after" id="a1"></div></div>
         </div>
-        <div style="margin-top:12px;font-size:13px;color:var(--ink2)">감지된 신호</div>
-        <div id="bias" style="margin-top:6px"></div>
+        <div class="meter">
+          <div class="lab"><b>위험자산 노출</b><span class="delta" id="d2"></span></div>
+          <div class="track"><div class="before" id="b2"></div><div class="after" id="a2"></div></div>
+        </div>
       </div>
-    </div>
 
-    <div class="card pad mt16">
-      <p class="section-h">내 판단 리포트 (누적)</p>
-      <div class="kv">
-        <div class="item"><span>아키타입 성향</span><b id="archetype">—</b></div>
-        <div class="item"><span>이번 세션 편향</span><b id="biasSummary">—</b></div>
-        <div class="item"><span>시뮬레이션 완료</span><b>1회</b></div>
+      <div class="card pad mt16">
+        <p class="section-h">나 vs 대표 투자자</p>
+        <div class="vs">
+          <div class="big">당신의 선택: <span id="myChoice">—</span></div>
+          <div class="kv">
+            <div class="item"><span>가장 가까운 관점</span><b id="closest">—</b></div>
+            <div class="item"><span>가장 반대 관점</span><b id="opposite">—</b></div>
+          </div>
+          <div style="margin-top:14px;font-size:13px;color:var(--ink2)">편향 판정</div>
+          <div id="bias" style="margin-top:6px"></div>
+          <div id="biasNote" style="font-size:11.5px;color:var(--ink3);margin-top:8px;line-height:1.6"></div>
+        </div>
       </div>
-      <div class="row mt16" style="justify-content:space-between;flex-wrap:wrap;gap:10px">
-        <button class="btn ghost" data-go="s2"><span class="arrow">←</span> 다른 선택 해보기</button>
-        <button class="btn ghost" data-go="s1">처음으로</button>
+
+      <div class="card pad mt16">
+        <p class="section-h">내 판단 리포트 (누적)</p>
+        <div class="kv">
+          <div class="item"><span>아키타입 성향</span><b id="archetype">—</b></div>
+          <div class="item"><span>이번 세션 신호</span><b id="biasSummary">—</b></div>
+          <div class="item"><span>시뮬레이션 완료</span><b>1회</b></div>
+        </div>
+        <div class="row mt16" style="justify-content:space-between;flex-wrap:wrap;gap:10px">
+          <button class="btn ghost" data-go="v2"><span class="arrow">←</span> 다른 선택 해보기</button>
+          <button class="btn ghost" data-go="v1">처음으로</button>
+        </div>
       </div>
     </div>
     <p class="foot">FINVERSE는 정답이나 상품을 추천하지 않습니다. 불확실한 상황에서 자신의 판단을 연습하도록 돕는 교육용 시뮬레이션입니다.</p>
@@ -282,97 +398,312 @@
 </div>
 
 <script>
-/* ---------- 화면 전환 ---------- */
-const screens = ['s1','s2','s3'];
+/* ==========================================================================
+   데이터 — 관계DB(73행) 중 이 시나리오에 관여하는 부분만 발췌
+   docs/섹터-종목매핑-관계DB-초안.md 와 부호·강도 일치
+   ========================================================================== */
+const SEC = [
+  ['S1','반도체·IT하드웨어','글로벌 반도체 수요'], ['S2','인터넷·SW·콘텐츠','미10년물'],
+  ['S3','2차전지·화학소재','전기차 수요'],       ['S4','자동차·조선·방산','원/달러'],
+  ['S5','금융','한국 기준금리'],                 ['S6','헬스케어','미10년물'],
+  ['S7','소비재·유통·통신','CPI'],               ['S8','에너지·소재','—'],
+  ['S9','건설·인프라·운송','한국 기준금리'],
+];
+const TODAY = {S1:-0.4,S2:-2.6,S3:-1.9,S4:0.3,S5:1.4,S6:-2.2,S7:-0.2,S8:0.6,S9:-0.9};
+
+/* 카드별 시나리오 스냅샷 (EventSimulation) */
+const CARDS = {
+  us10y:{
+    title:'미 10년물 4.3% 돌파', key:'evt-us10y @ 2026-07-31', cached:true,
+    agents:[['미 연준','macro'],['미 재무부','macro'],['미국채 10년물','macro'],['외국인 수급','macro'],
+            ['인터넷·SW 섹터','sector'],['헬스케어 섹터','sector'],['금융 섹터','sector'],['반도체 섹터','sector']],
+    /* 지표 → 섹터 충격 (관계DB의 us10y drives 행과 동일) */
+    impact:{S1:-2,S2:-3,S3:-3,S5:2,S6:-3},
+    timeline:[
+      ['이벤트','—','미 10년물 금리가 4.31%로 연중 최고를 경신했다.',[]],
+      ['미 재무부','macro','분기 국채 발행 계획을 확대한다. 공급이 늘면 금리에 상방 압력이 간다.',['R-005']],
+      ['인터넷·SW 섹터','sector','할인율 상승은 우리에게 가장 아프다. 먼 미래 이익일수록 현재가치가 크게 깎인다.',['R-111']],
+      ['헬스케어 섹터','sector','임상 성공 이후의 현금흐름을 다시 계산해야 한다. 파이프라인 가치가 재평가된다.',['R-151']],
+      ['금융 섹터','sector','우리에겐 반대다. 장단기 금리차가 벌어지면 순이자마진이 개선된다.',['R-142']],
+      ['외국인 수급','macro','무위험 수익률이 오르면 신흥국 주식의 상대 매력이 떨어진다. 비중 축소 압력.',['R-014']],
+      ['반도체 섹터','sector','우리도 성장주지만 이익 가시성이 있다. 순수 성장주보다는 덜 밀린다.',['R-103']],
+    ],
+  },
+  wti:{
+    title:'OPEC+ 감산 연장 합의', key:'evt-wti @ 2026-07-31', cached:false,
+    agents:[['OPEC+','macro'],['WTI 유가','macro'],['CPI','macro'],
+            ['에너지·소재 섹터','sector'],['건설·인프라·운송 섹터','sector'],['소비재 섹터','sector'],['2차전지 섹터','sector']],
+    impact:{S3:1,S4:-1,S8:-2,S9:-2},   /* WTI의 직접 drives 엣지만: R-126·R-135·R-172·R-182 */
+    timeline:[
+      ['이벤트','—','OPEC+가 감산 연장에 합의했다. WTI가 배럴당 78달러를 넘어섰다.',[]],
+      ['OPEC+','macro','공급을 조절해 가격을 지지한다. 감산 기조를 다음 분기까지 유지한다.',['R-006']],
+      ['건설·인프라·운송 섹터','sector','항공 연료비와 해운 벙커유가 바로 오른다. 우리 섹터는 전부 같은 방향으로 아프다.',['R-182']],
+      ['에너지·소재 섹터','sector','화학은 납사 원가가 오른다. 다만 정유는 정제마진이 개선돼 섹터 내에서 방향이 갈린다.',['R-172']],
+      ['CPI','macro','에너지는 소비자물가를 직접 구성한다. 운송·생산 원가로도 번진다.',['R-016']],
+      ['소비재 섹터','sector','물가가 오르면 구매력이 준다. 원가는 먼저 오르고 판가는 늦게 오른다. — 유가가 CPI를 거쳐 오는 간접 경로다.',['R-016','R-161']],
+      ['2차전지 섹터','sector','유가가 오르면 내연기관 운행비가 오른다. 전기차 전환 유인이 생기지만 경로가 길다.',['R-126']],
+    ],
+  },
+};
+const RELDESC = {
+  'R-005':'미 재무부 → 미국채10년물 · 촉진(+) 중 · 국채 발행 물량 확대 → 공급 증가 → 금리 상승 압력',
+  'R-111':'미국채10년물 → 인터넷·SW · 억제(−) 강 · 장기 성장주라 할인율에 가장 민감',
+  'R-151':'미국채10년물 → 헬스케어 · 억제(−) 강 · 먼 미래 현금흐름 → 할인율 최민감',
+  'R-142':'미국채10년물 → 금융 · 촉진(+) 중 · 장단기 금리차 확대 → 순이자마진 개선',
+  'R-014':'미국채10년물 → 외국인 수급 · 억제(−) 중 · 무위험 수익률 상승 → 신흥국 자금 이탈',
+  'R-103':'미국채10년물 → 반도체 · 억제(−) 중 · 성장주 할인율. 단 이익 가시성으로 둔감',
+  'R-006':'OPEC+ → WTI 유가 · 촉진(+) 강 · 감산·증산 결정이 공급을 직접 조절',
+  'R-182':'WTI 유가 → 건설·인프라·운송 · 억제(−) 중 · 항공 연료비·해운 벙커유. 섹터 전체가 같은 방향',
+  'R-172':'WTI 유가 → 에너지·소재 · 억제(−) 중 · 화학 납사 원가 지배. 단 정유는 (+)로 상반',
+  'R-016':'WTI 유가 → CPI · 촉진(+) 강 · 에너지가 소비자물가를 직접 구성',
+  'R-161':'CPI → 소비재·유통·통신 · 억제(−) 강 · 구매력 잠식 + 판가 전가 지연',
+  'R-126':'WTI 유가 → 2차전지 · 촉진(+) 약 · 전기차 전환 유인. 경로가 길고 실증 논쟁적',
+};
+
+/* 내 보유 (가상) */
+const HOLD = [['삼성전자','S1',.30],['SK하이닉스','S1',.20],['LG에너지솔루션','S3',.20],['카카오','S2',.15],['KB금융','S5',.15]];
+const SECNAME = Object.fromEntries(SEC.map(([id,nm])=>[id,nm]));
+
+let CUR='us10y';
+
+/* ==========================================================================
+   화면 전환
+   ========================================================================== */
+const screens=['v1','v2','v3'];
 function go(id){
   screens.forEach(s=>document.getElementById(s).classList.toggle('on', s===id));
   document.querySelectorAll('.step').forEach(b=>b.classList.toggle('active', b.dataset.go===id));
   window.scrollTo({top:0,behavior:'smooth'});
 }
-document.querySelectorAll('[data-go]').forEach(el=>{
-  if(el.id==='toTwin') return; // 선택 후에만 이동
-  el.addEventListener('click',()=>go(el.dataset.go));
-});
+document.querySelectorAll('[data-go]').forEach(el=>el.addEventListener('click',()=>go(el.dataset.go)));
 
-/* ---------- 3경로 차트 (SVG, diverging: 낙관↑ / 기준 / 위험↓) ---------- */
-(function(){
-  const opt =[6756,6790,6835,6875,6930,6980,7020,7075,7120,7160,7195,7215];
-  const base=[6756,6770,6752,6768,6745,6760,6738,6752,6730,6742,6728,6722];
-  const risk=[6756,6720,6688,6650,6620,6585,6560,6528,6505,6488,6478,6472];
-  const W=680,H=280,L=52,R=616,T=22,B=232, MIN=6420,MAX=7260, N=opt.length;
-  const x=i=>L+i/(N-1)*(R-L);
-  const y=v=>T+(MAX-v)/(MAX-MIN)*(B-T);
-  const line=a=>a.map((v,i)=>(i?'L':'M')+x(i).toFixed(1)+' '+y(v).toFixed(1)).join(' ');
-  const cone=`${line(opt)} L${x(N-1).toFixed(1)} ${y(risk[N-1]).toFixed(1)} `+
-    risk.slice().reverse().map((v,i)=>'L'+x(N-1-i).toFixed(1)+' '+y(v).toFixed(1)).join(' ')+' Z';
+/* ==========================================================================
+   V1
+   ========================================================================== */
+document.getElementById('heat').innerHTML = SEC.map(([id,nm,drv])=>{
+  const v=TODAY[id], c=v>0?'var(--up)':v<0?'var(--down)':'var(--ink3)';
+  return `<div class="hs"><div class="nm">${nm}</div>
+    <div class="v" style="color:${c}">${v>0?'+':''}${v.toFixed(1)}%</div>
+    <div class="dr">1차 동인 · ${drv}</div></div>`;
+}).join('');
+
+document.querySelectorAll('[data-card]').forEach(b=>b.addEventListener('click',()=>{
+  CUR=b.dataset.card; go('v2'); loadCard();
+}));
+
+/* ==========================================================================
+   V2 — 생성 UX · 타임라인 · 충격 팩터 · 경로
+   ========================================================================== */
+const GEN_STEPS=['오늘의 Base Model 로딩','매크로·섹터 에이전트 구성 (7)','상호작용 라운드 1–6 실행','섹터 충격 팩터 산출','스냅샷 저장 · 캐시 등록'];
+function loadCard(){
+  const c=CARDS[CUR];
+  document.getElementById('v2title').textContent=c.title;
+  document.getElementById('v2sub').innerHTML=`2026-07-31 세계관 위에서 생성 · 캐시 키 <code style="font-size:12px">${c.key}</code>`;
+  const gc=document.getElementById('genCard'), body=document.getElementById('v2body');
+  if(c.cached){ gc.style.display='none'; body.style.display='block'; render(c); return; }
+  // 온디맨드 생성 시연
+  gc.style.display='block'; body.style.display='none';
+  document.getElementById('genTitle').textContent='시뮬레이션 생성 중…';
+  let i=0;
+  const fill=document.getElementById('genFill'), step=document.getElementById('genStep');
+  fill.style.width='0%';
+  const t=setInterval(()=>{
+    step.textContent=GEN_STEPS[i];
+    fill.style.width=Math.round((i+1)/GEN_STEPS.length*100)+'%';
+    if(++i>=GEN_STEPS.length){
+      clearInterval(t);
+      setTimeout(()=>{ c.cached=true; gc.style.display='none'; body.style.display='block'; render(c);
+        document.querySelectorAll('[data-card="'+CUR+'"]').forEach(b=>{
+          const tag=b.closest('.evt').querySelector('.tag');
+          tag.className='tag cached'; tag.textContent='캐시됨 · 즉시'; b.textContent='시뮬레이션 보기 →';
+        });
+      },420);
+    }
+  },520);
+}
+function render(c){
+  document.getElementById('agents').innerHTML =
+    c.agents.map(([n,k])=>`<span class="ag ${k}">${n}</span>`).join('');
+
+  const tl=document.getElementById('tl');
+  tl.innerHTML = c.timeline.map(([who,kind,tx,rels],i)=>`
+    <div class="tstep" data-i="${i}">
+      <div class="who">${who}${kind!=='—'?`<em>${kind==='macro'?'매크로 에이전트':'섹터 에이전트'}</em>`:''}</div>
+      <div class="tx">${tx}</div>
+      ${rels.length?`<div class="rl">${rels.map(r=>`<span class="cite" title="${RELDESC[r]||''}">${r}</span>`).join('')}</div>`:''}
+    </div>`).join('');
+  [...tl.children].forEach((el,i)=>setTimeout(()=>el.classList.add('on'), 90+i*260));
+
+  const facs=document.getElementById('facs');
+  const myS=new Set(HOLD.map(h=>h[1]));
+  facs.innerHTML = SEC.map(([id,nm])=>{
+    const v=c.impact[id]||0, w=Math.abs(v)/3*50, col=v>0?'var(--up)':'var(--down)';
+    return `<div class="fac ${myS.has(id)?'mine':''}">
+      <div class="nm">${nm}${myS.has(id)?' ·<b> 보유</b>':''}</div>
+      <div class="tr"><i></i>${v?`<div class="fl" style="background:${col};${v>0?`left:50%;width:${w}%`:`right:50%;width:${w}%`}"></div>`:''}</div>
+      <div class="vl">${v>0?'+':''}${v||'—'}</div></div>`;
+  }).join('');
+
+  drawChart();
+  renderTwinInputs();
+}
+
+/* 3경로 — 밴드(범위)로 그린다 */
+function drawChart(){
+  const W=680,H=270,L=44,R=650,T=18,B=228, N=12;
+  const MIN=-8, MAX=7;
+  const x=i=>L+i/(N-1)*(R-L), y=v=>T+(MAX-v)/(MAX-MIN)*(B-T);
+  const ramp=(lo,hi)=>Array.from({length:N},(_,i)=>{const t=i/(N-1); return [lo*t, hi*t];});
+  const band=(pts,fill)=>{
+    const up=pts.map((p,i)=>(i?'L':'M')+x(i).toFixed(1)+' '+y(p[1]).toFixed(1)).join(' ');
+    const dn=pts.slice().reverse().map((p,i)=>'L'+x(N-1-i).toFixed(1)+' '+y(p[0]).toFixed(1)).join(' ');
+    return `<path d="${up} ${dn} Z" fill="${fill}" opacity=".55"/>`;
+  };
+  const mid=(pts,c,dash)=>`<path d="${pts.map((p,i)=>(i?'L':'M')+x(i).toFixed(1)+' '+y((p[0]+p[1])/2).toFixed(1)).join(' ')}"
+      fill="none" stroke="${c}" stroke-width="2" ${dash?'stroke-dasharray="5 4"':''}/>`;
+  const O=ramp(2.0,5.5), Bs=ramp(-1.5,1.5), Rk=ramp(-6.5,-2.5);
   let grid='';
-  [6500,6700,6900,7100].forEach(v=>{grid+=`<line x1="${L}" y1="${y(v)}" x2="${R}" y2="${y(v)}" stroke="#eef0f2"/>`+
-    `<text x="${L-8}" y="${y(v)+4}" text-anchor="end" font-size="10" fill="#9299a1">${v.toLocaleString()}</text>`;});
-  const nowX=x(0);
-  const dot=(v,c,i)=>`<circle cx="${x(N-1)}" cy="${y(v)}" r="4.5" fill="${c}"><title>${['낙관','기준','위험'][i]}: ${v.toLocaleString()}</title></circle>`;
-  const svg=`<svg class="forecast" viewBox="0 0 ${W} ${H}" role="img" aria-label="낙관·기준·위험 3경로 KOSPI 예상">
-    ${grid}
-    <line x1="${nowX}" y1="${T}" x2="${nowX}" y2="${B}" stroke="#c9ced4" stroke-dasharray="3 3"/>
-    <text x="${nowX}" y="${B+16}" text-anchor="middle" font-size="10" fill="#6b7280" font-weight="700">현재</text>
-    <text x="${R}" y="${B+16}" text-anchor="end" font-size="10" fill="#9299a1">+30일</text>
-    <path d="${cone}" fill="#5b5f66" opacity="0.06"/>
-    <path d="${line(risk)}" fill="none" stroke="#2a78d6" stroke-width="2"/>
-    <path d="${line(base)}" fill="none" stroke="#8a8a83" stroke-width="2" stroke-dasharray="5 4"/>
-    <path d="${line(opt)}" fill="none" stroke="#e34948" stroke-width="2.2"/>
-    ${dot(opt[N-1],'#e34948',0)}${dot(base[N-1],'#8a8a83',1)}${dot(risk[N-1],'#2a78d6',2)}
-    <text x="${x(N-1)-8}" y="${y(opt[N-1])-8}" text-anchor="end" font-size="11" font-weight="800" fill="#c0362f">+6.8%</text>
-    <text x="${x(N-1)-8}" y="${y(risk[N-1])+16}" text-anchor="end" font-size="11" font-weight="800" fill="#1f5fb8">-4.2%</text>
-  </svg>`;
-  document.getElementById('chart').innerHTML=svg;
-})();
+  [-6,-3,0,3,6].forEach(v=>{grid+=`<line x1="${L}" y1="${y(v)}" x2="${R}" y2="${y(v)}" stroke="${v===0?'#d6dade':'#eef0f2'}"/>
+    <text x="${L-7}" y="${y(v)+4}" text-anchor="end" font-size="10" fill="#9299a1">${v>0?'+':''}${v}%</text>`;});
+  document.getElementById('chart').innerHTML=`
+    <svg class="forecast" viewBox="0 0 ${W} ${H}" role="img" aria-label="30일 3경로 범위">
+      ${grid}
+      ${band(Rk,'#c6dbf5')}${band(Bs,'#e3e3df')}${band(O,'#f3c9c5')}
+      ${mid(Rk,'#2a78d6')}${mid(Bs,'#8a8a83',1)}${mid(O,'#e34948')}
+      <text x="${L}" y="${B+16}" font-size="10" fill="#6b7280" font-weight="700">현재</text>
+      <text x="${R}" y="${B+16}" text-anchor="end" font-size="10" fill="#9299a1">+30일</text>
+      <text x="${R-4}" y="${y(3.75)-6}" text-anchor="end" font-size="11" font-weight="800" fill="#c0362f">낙관 +2.0~+5.5%</text>
+      <text x="${R-4}" y="${y(-4.5)+14}" text-anchor="end" font-size="11" font-weight="800" fill="#1f5fb8">위험 −6.5~−2.5%</text>
+    </svg>`;
+}
 
-/* ---------- 분기 선택 → 트윈 피드백 ---------- */
-const OUT={
-  buy:{label:'더 산다', closest:'캐시 우드 (강세)', opp:'하워드 막스 · 워런 버핏',
-       stability:[70,52], risk:[58,78], bias:[['FOMO','warn'],['과신','warn']],
-       archetype:'성장 낙관형', summary:'FOMO · 과신'},
-  hold:{label:'유지', closest:'레이 달리오 (중립)', opp:'—',
-       stability:[70,68], risk:[58,60], bias:[['현상유지 편향(약)','info']],
-       archetype:'균형형', summary:'현상유지(약)'},
-  realize:{label:'일부 실현', closest:'하워드 막스 · 워런 버핏', opp:'캐시 우드',
-       stability:[70,82], risk:[58,42], bias:[['위험관리 우수','good'],['기준점 이탈 성공','good']],
-       archetype:'신중 관리형', summary:'위험관리 우수'},
-  diversify:{label:'분산', closest:'레이 달리오 (매크로 분산)', opp:'캐시 우드',
-       stability:[70,79], risk:[58,47], bias:[['쏠림 완화','good']],
-       archetype:'매크로 분산형', summary:'쏠림 완화'}
-};
-let picked=null;
-document.querySelectorAll('.choice').forEach(c=>{
-  c.addEventListener('click',()=>{
-    document.querySelectorAll('.choice').forEach(x=>x.classList.remove('sel'));
-    c.classList.add('sel'); picked=c.dataset.choice;
-    document.getElementById('toTwin').disabled=false;
+/* ==========================================================================
+   V3 — 포트폴리오 계산 · 대가 관점 · 내 선택
+   ========================================================================== */
+const GURUS=[
+  ['buffett','워런 버핏','가치 · 안전마진','hold','신중 · 관망','hold',
+   '금리가 오르면 요구수익률도 오릅니다. 지금 가격에 안전마진이 없다면 저는 기다립니다.'],
+  ['dalio','레이 달리오','매크로 · 분산','neut','중립 · 분산','diversify',
+   '금리 사이클이 돌면 자산 간 균형이 깨집니다. 한쪽에 쏠린 비중부터 다시 맞추겠습니다.'],
+  ['wood','캐시 우드','혁신 · 성장','bull','강세 · 매수','buy',
+   '할인율은 순환합니다. 혁신 기업의 장기 성장 곡선 자체가 훼손된 것은 아닙니다.'],
+  ['marks','하워드 막스','리스크 · 사이클','watch','경계 · 축소','realize',
+   '사이클상 위험이 커지는 구간입니다. 레버리지와 고밸류부터 덜어내는 것이 순서입니다.'],
+];
+const CHOICE_LABEL={buy:'더 산다',hold:'유지',realize:'일부 실현',diversify:'분산',watch:'지켜본다'};
+
+function portImpact(){
+  const c=CARDS[CUR]; let sum=0; const parts=[];
+  const bySec={}; HOLD.forEach(([nm,s,w])=>{bySec[s]=(bySec[s]||0)+w;});
+  Object.entries(bySec).forEach(([s,w])=>{
+    const v=c.impact[s]||0; sum+=v*w;
+    if(v) parts.push(`${SECNAME[s]} ${v>0?'+':''}${v} × ${Math.round(w*100)}%`);
   });
-});
-document.getElementById('toTwin').addEventListener('click',()=>{ if(!picked)return; renderTwin(OUT[picked]); go('s3'); });
+  return {sum,parts};
+}
+function renderTwinInputs(){
+  document.getElementById('port').innerHTML =
+    HOLD.map(([nm,s,w])=>`<span class="pchip">${nm}<small>${SECNAME[s]} · ${Math.round(w*100)}%</small></span>`).join('');
+  const {sum,parts}=portImpact();
+  const col = sum>0?'var(--up)':sum<0?'var(--down)':'var(--ink3)';
+  document.getElementById('calcBox').innerHTML=`
+    <b>포트폴리오 영향</b> = Σ (섹터 충격 팩터 × 내 보유 비중) — <b>2-hop</b><br>
+    <code>${parts.join('  +  ')||'해당 섹터 없음'}</code><br>
+    = <b style="color:${col};font-size:15px">${sum>0?'+':''}${sum.toFixed(2)}</b>
+    <span style="color:var(--ink3)">(−3 ~ +3 상대 영향도 · 수익률 아님)</span><br>
+    <span style="color:var(--ink3)">이 값은 LLM이 아니라 <b>결정론적 곱셈</b>으로 계산됩니다.</span>`;
 
-function meter(beforeEl,afterEl,deltaEl,pair,invert){
+  document.getElementById('gurus').innerHTML = GURUS.map(([id,nm,lens,chip,stance,choice,quote])=>`
+    <button class="guru" data-g="${id}">
+      <div class="nm">${nm}</div><div class="lens">${lens}</div>
+      <span class="chip ${chip}">${stance}</span>
+      <div class="q">${quote}</div>
+    </button>`).join('');
+  document.querySelectorAll('.guru').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('.guru').forEach(x=>x.classList.remove('sel'));
+    b.classList.add('sel');
+    const g=GURUS.find(x=>x[0]===b.dataset.g);
+    document.querySelectorAll('.choice').forEach(x=>x.classList.toggle('sel', x.dataset.c===g[5]));
+    picked=g[5]; fromGuru=g[1];
+    document.getElementById('submit').disabled=false;
+  }));
+}
+let picked=null, fromGuru=null;
+document.querySelectorAll('.choice').forEach(c=>c.addEventListener('click',()=>{
+  document.querySelectorAll('.choice').forEach(x=>x.classList.remove('sel'));
+  document.querySelectorAll('.guru').forEach(x=>x.classList.remove('sel'));
+  c.classList.add('sel'); picked=c.dataset.c; fromGuru=null;
+  document.getElementById('submit').disabled=false;
+}));
+
+/* 편향 후보 — 선택만으로 단정하지 않고 "왜?" 입력과 함께 분류 */
+const BIAS={
+  buy:{cand:[['FOMO','warn'],['과신','warn']], ok:'근거 있는 고신념', arch:'성장 낙관형',
+       close:'캐시 우드', opp:'하워드 막스'},
+  hold:{cand:[['현상유지 편향','info'],['기준점 의존','info']], ok:'원칙 준수', arch:'균형형',
+       close:'워런 버핏', opp:'—'},
+  realize:{cand:[['기준점 의존(매수가 앵커)','info']], ok:'사이클 인식', arch:'신중 관리형',
+       close:'하워드 막스', opp:'캐시 우드'},
+  diversify:{cand:[], ok:'집중도 해소', arch:'매크로 분산형',
+       close:'레이 달리오', opp:'캐시 우드'},
+  watch:{cand:[['판단 회피','warn'],['현재편향','warn']], ok:'정보 대기(근거 있음)', arch:'관망형',
+       close:'—', opp:'캐시 우드'},
+};
+const OK_HINT=/펀더멘털|실적|장기|목표|비중|원칙|계획|리밸런|분산|현금흐름|밸류|저평가|근거/;
+
+document.getElementById('submit').addEventListener('click',()=>{
+  if(!picked) return;
+  const b=BIAS[picked], why=document.getElementById('why').value.trim();
+  const noBias = why && OK_HINT.test(why);
+  const {sum}=portImpact();
+
+  document.getElementById('myChoice').textContent =
+    CHOICE_LABEL[picked] + (fromGuru?` (${fromGuru} 관점으로 시뮬)`:'');
+  document.getElementById('closest').textContent=b.close;
+  document.getElementById('opposite').textContent=b.opp;
+  document.getElementById('archetype').textContent=b.arch;
+
+  // 목표 영향: 포트폴리오 충격 + 선택의 방향성
+  const tilt={buy:-1,hold:0,realize:1,diversify:.8,watch:-.3}[picked];
+  const stab=Math.max(5,Math.min(95, Math.round(70 + sum*6 + tilt*8)));
+  const risk=Math.max(5,Math.min(95, Math.round(58 - sum*4 - tilt*10)));
+  meter('b1','a1','d1',[70,stab],false);
+  meter('b2','a2','d2',[58,risk],true);
+
+  let pills, note;
+  if(!why){
+    pills=`<span class="pill info">판정 보류 — 이유 미입력</span>`;
+    note='선택만으로는 편향을 단정하지 않습니다. 같은 선택도 이유에 따라 편향일 수도, 근거 있는 판단일 수도 있습니다.';
+  } else if(noBias || b.cand.length===0){
+    pills=`<span class="pill good">✓ 편향 신호 없음 — ${b.ok}</span>`;
+    note='입력하신 이유에서 편향 신호가 확인되지 않았습니다. <b>"편향 없음"도 정상 판정</b>입니다.';
+  } else {
+    pills=b.cand.map(([t,k])=>`<span class="pill ${k}">${k==='warn'?'⚠ ':''}${t} 후보</span>`).join('');
+    note=`스냅샷에는 <b>편향 후보 가설</b>만 담기고, 확정은 이유 한 줄을 경량 LLM 1회가 후보에 분류합니다. 후보 ≠ 확정입니다.`;
+  }
+  document.getElementById('bias').innerHTML=pills;
+  document.getElementById('biasNote').innerHTML=note;
+  document.getElementById('biasSummary').textContent =
+    (!why) ? '판정 보류' : (noBias||b.cand.length===0) ? '편향 신호 없음' : b.cand.map(c=>c[0]).join(' · ');
+
+  document.getElementById('result').style.display='block';
+  document.getElementById('result').scrollIntoView({behavior:'smooth',block:'start'});
+});
+
+function meter(bEl,aEl,dEl,pair,invert){
   const [bf,af]=pair;
-  document.getElementById(beforeEl).style.width=bf+'%';
-  const a=document.getElementById(afterEl); a.style.width=af+'%';
-  const worse = invert ? af>bf : af<bf;               // 안정성↓ 나쁨 / 위험↑ 나쁨
+  document.getElementById(bEl).style.width=bf+'%';
+  const a=document.getElementById(aEl); a.style.width=af+'%';
+  const worse = invert ? af>bf : af<bf;
   a.style.background = worse ? '#e34948' : '#2f9e6f';
-  const diff=af-bf, sign=diff>0?'+':'';
-  const d=document.getElementById(deltaEl);
-  d.textContent=`${bf} → ${af}  (${sign}${diff})`;
+  const diff=af-bf, s=diff>0?'+':'';
+  const d=document.getElementById(dEl);
+  d.textContent=`${bf} → ${af}  (${s}${diff})`;
   d.style.color = worse ? '#c0362f' : '#1f7a55';
 }
-function renderTwin(o){
-  document.getElementById('myChoice').textContent=o.label;
-  document.getElementById('closest').textContent=o.closest;
-  document.getElementById('opposite').textContent=o.opp;
-  document.getElementById('archetype').textContent=o.archetype;
-  document.getElementById('biasSummary').textContent=o.summary;
-  meter('b1','a1','d1',o.stability,false); // 안정성: 낮아지면 나쁨
-  meter('b2','a2','d2',o.risk,true);       // 위험노출: 높아지면 나쁨
-  const cls={warn:'warn',good:'good',info:'info'};
-  document.getElementById('bias').innerHTML=o.bias.map(([t,k])=>`<span class="pill ${cls[k]}">${k==='warn'?'⚠ ':k==='good'?'✓ ':''}${t}</span>`).join('');
-}
+
+/* 초기 렌더 */
+render(CARDS[CUR]);
 </script>
 </body>
 </html>
