@@ -1,0 +1,599 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<!-- FINVERSE-DOC · AI 어시스트 작성 · 원본 소스코드와 구분되는 산출물 -->
+<!-- 용도: 개발 구현용 화면 목업 + 데이터 바인딩/API 명세. 근거: PRD v0.5 §6·§8, 결정 #14~#19 -->
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FINVERSE · 화면 목업 & 데이터 바인딩 명세</title>
+<style>
+  :root{
+    --bg:#f4f5f6; --surface:#fff; --ink:#17181b; --ink2:#585d64; --ink3:#9aa0a7;
+    --line:#e5e7ea; --line2:#eef0f2;
+    --wire:#c9ced4; --wirefill:#f0f2f4;
+    --up:#e34948; --down:#2a78d6;
+    --dark:#141518; --accent:#2f6be0;
+    --p0:#1f7a4d; --p1:#9a6b12;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--ink);line-height:1.5;padding:0 18px 72px;
+    font-family:'Pretendard','Pretendard Variable',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1240px;margin:0 auto}
+
+  /* ---------- topbar ---------- */
+  .topbar{position:sticky;top:0;z-index:30;background:rgba(244,245,246,.9);backdrop-filter:blur(8px) saturate(1.2);
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:15px 0 13px;border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:16.5px;letter-spacing:-.02em}
+  .brand .mark{width:26px;height:26px;border-radius:8px;background:var(--dark);color:#fff;display:grid;place-items:center;font-size:13px}
+  .brand small{font-weight:600;color:var(--ink3);font-size:12px;letter-spacing:0}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap}
+  .tab{border:1px solid var(--line);background:#fff;color:var(--ink2);border-radius:999px;padding:7px 13px;
+    font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s;display:flex;gap:7px;align-items:center}
+  .tab .k{font-size:10px;font-weight:800;color:var(--ink3);background:var(--line2);border-radius:5px;padding:1px 5px}
+  .tab:hover{border-color:#d3d7dc}
+  .tab.on{background:var(--dark);color:#fff;border-color:var(--dark)}
+  .tab.on .k{background:rgba(255,255,255,.22);color:#fff}
+  .toggles{margin-left:auto;display:flex;gap:8px;align-items:center}
+  .tg{font-size:11.5px;font-weight:700;color:var(--ink2);border:1px solid var(--line);background:#fff;
+    border-radius:999px;padding:6px 11px;cursor:pointer;font-family:inherit}
+  .tg.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+  /* ---------- flow strip ---------- */
+  .flow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:20px 0 4px;
+    background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:13px 15px}
+  .flow b{font-size:12px;color:var(--ink3);font-weight:800;letter-spacing:.08em;margin-right:4px}
+  .fnode{border:1px solid var(--line);border-radius:9px;padding:6px 11px;font-size:12.5px;font-weight:700;background:var(--surface)}
+  .fnode i{font-style:normal;color:var(--ink3);font-weight:700;font-size:10.5px;display:block}
+  .farr{color:var(--ink3);font-size:14px}
+  .fnote{font-size:11.5px;color:var(--ink3);margin-left:auto;font-weight:600}
+
+  /* ---------- screen ---------- */
+  .screen{display:none;margin-top:18px}
+  .screen.on{display:block}
+  .shead{margin:0 0 14px}
+  .shead .eb{font-size:10.5px;letter-spacing:.16em;font-weight:800;color:var(--ink3);text-transform:uppercase}
+  .shead h1{font-size:21px;margin:5px 0 3px;letter-spacing:-.02em;font-weight:800}
+  .shead p{margin:0;color:var(--ink2);font-size:13.5px}
+  .cols{display:grid;grid-template-columns:1fr 400px;gap:18px;align-items:start}
+  @media(max-width:1080px){.cols{grid-template-columns:1fr}}
+
+  /* ---------- wireframe ---------- */
+  .device{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:30px 16px 16px;position:relative}
+  .device::before{content:'WIREFRAME';position:absolute;top:11px;right:15px;font-size:9.5px;letter-spacing:.16em;
+    color:var(--ink3);font-weight:800}
+  .w{border:1.5px dashed var(--wire);border-radius:10px;background:var(--wirefill);padding:11px 13px;position:relative;margin-bottom:10px}
+  .w.solid{border-style:solid;background:#fff}
+  .w .wl{font-size:11px;font-weight:800;color:var(--ink2);letter-spacing:-.01em;display:flex;align-items:center;gap:6px}
+  .w .wd{font-size:11px;color:var(--ink3);margin-top:3px;line-height:1.55}
+  .badge{position:absolute;top:-8px;left:11px;width:19px;height:19px;border-radius:50%;background:var(--dark);color:#fff;
+    display:grid;place-items:center;font-size:10px;font-weight:800;cursor:pointer;z-index:2}
+  .badge.hl{background:var(--accent);transform:scale(1.15)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .bar{height:7px;border-radius:4px;background:#dfe3e7;margin-top:6px}
+  .bar.s{width:62%} .bar.m{width:84%} .bar.l{width:96%}
+  .chip{display:inline-block;border:1px solid var(--wire);border-radius:999px;padding:3px 9px;font-size:10.5px;
+    font-weight:700;color:var(--ink2);background:#fff;margin:3px 4px 0 0}
+  .fake-graph{height:132px;border-radius:8px;background:
+     radial-gradient(circle at 16% 34%, #d8dde3 0 5px, transparent 6px),
+     radial-gradient(circle at 16% 66%, #d8dde3 0 5px, transparent 6px),
+     radial-gradient(circle at 42% 22%, #d8dde3 0 5px, transparent 6px),
+     radial-gradient(circle at 42% 50%, #d8dde3 0 5px, transparent 6px),
+     radial-gradient(circle at 42% 78%, #d8dde3 0 5px, transparent 6px),
+     radial-gradient(circle at 70% 30%, #cdd3da 0 7px, transparent 8px),
+     radial-gradient(circle at 70% 58%, #cdd3da 0 7px, transparent 8px),
+     radial-gradient(circle at 70% 84%, #cdd3da 0 7px, transparent 8px),
+     linear-gradient(#f7f8f9,#f7f8f9);
+     border:1px solid var(--line2);margin-top:8px;position:relative}
+  .fake-graph::after{content:'매크로 → 섹터 9 → 종목 100 · 엣지 색=부호 / 굵기=강도';
+     position:absolute;bottom:7px;left:10px;font-size:10px;color:var(--ink3);font-weight:600}
+  /* V3: 내 것만 선명, 나머지는 흐리게 */
+  .hlwrap{position:relative}
+  .hlwrap .fake-graph{opacity:.32}
+  .hlwrap .hlband{position:absolute;left:12%;top:16px;width:64%;height:calc(100% - 40px);
+     border:1.5px solid var(--up);border-radius:9px;background:rgba(227,73,72,.05);pointer-events:none}
+  .hlwrap .hlband b{position:absolute;top:-9px;left:9px;background:#fff;padding:0 6px;font-size:9.5px;
+     color:var(--up);font-weight:800;letter-spacing:-.01em}
+  .tl{border-left:2px solid var(--wire);padding-left:11px;margin-top:8px}
+  .tl div{font-size:10.5px;color:var(--ink3);margin-bottom:6px;font-weight:600}
+  .band{height:44px;border-radius:8px;margin-top:8px;border:1px solid var(--line2);
+    background:linear-gradient(90deg,#f7f8f9,#fff);position:relative;overflow:hidden}
+  .band span{position:absolute;left:6%;transform:translateY(-50%);height:9px;border-radius:5px;opacity:.55}
+  .band .o{width:78%;background:var(--up);top:24%}
+  .band .b{width:60%;background:#b9bec4;top:50%}
+  .band .r{width:44%;background:var(--down);top:76%}
+  .disc{font-size:10px;color:var(--ink3);border-top:1px dashed var(--line);padding-top:8px;margin-top:6px;line-height:1.6}
+
+  /* ---------- spec panel ---------- */
+  .spec{position:sticky;top:74px}
+  .sp{background:#fff;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+  .sp h3{margin:0;padding:13px 15px;font-size:13px;font-weight:800;border-bottom:1px solid var(--line);letter-spacing:-.01em}
+  .sp h3 small{font-weight:600;color:var(--ink3);font-size:11px;margin-left:6px}
+  .srow{padding:11px 15px;border-bottom:1px solid var(--line2);cursor:pointer;transition:.12s}
+  .srow:last-child{border-bottom:0}
+  .srow:hover{background:#fafbfc}
+  .srow.hl{background:#f0f5ff}
+  .srow .t{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700}
+  .srow .n{width:18px;height:18px;border-radius:50%;background:var(--dark);color:#fff;display:grid;place-items:center;
+    font-size:9.5px;font-weight:800;flex:none}
+  .pri{font-size:9.5px;font-weight:800;border-radius:5px;padding:1px 5px;margin-left:auto;flex:none}
+  .pri.p0{background:#e6f4ec;color:var(--p0)} .pri.p1{background:#fdf4e0;color:var(--p1)}
+  .srow .src{font-size:11px;color:var(--ink2);margin-top:5px;line-height:1.6}
+  .srow code{background:var(--line2);border-radius:4px;padding:1px 5px;font-size:10.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#3d4148}
+  .srow .warn{color:#9a3412;background:#fff4ed;border-radius:6px;padding:5px 8px;font-size:10.5px;margin-top:6px;font-weight:600}
+
+  /* ---------- api table ---------- */
+  .foot{margin-top:26px}
+  table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+  th,td{text-align:left;padding:10px 13px;font-size:12px;border-bottom:1px solid var(--line2);vertical-align:top}
+  th{background:#fafbfc;font-weight:800;color:var(--ink2);font-size:11px;letter-spacing:.02em}
+  tr:last-child td{border-bottom:0}
+  td code{background:var(--line2);border-radius:4px;padding:1px 5px;font-size:11px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  h2.sec{font-size:15px;font-weight:800;margin:26px 0 11px;letter-spacing:-.01em}
+  .note{background:#fff;border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:10px;
+    padding:12px 15px;font-size:12.5px;color:var(--ink2);line-height:1.7;margin-top:12px}
+  .note b{color:var(--ink)}
+  .safety{background:#fffdf6;border:1px solid #f0e5c8;border-radius:10px;padding:12px 15px;font-size:12px;
+    color:#6b5a2a;line-height:1.7;margin-top:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="topbar">
+  <div class="brand"><span class="mark">F</span>FINVERSE <small>화면 목업 &amp; 데이터 바인딩</small></div>
+  <div class="tabs">
+    <button class="tab on" data-s="s0"><span class="k">S0</span>트윈 설정</button>
+    <button class="tab" data-s="v1"><span class="k">C</span>V1 시장 인사이트</button>
+    <button class="tab" data-s="v2"><span class="k">B</span>V2 이벤트 시뮬</button>
+    <button class="tab" data-s="v3"><span class="k">A</span>V3 나 트윈</button>
+    <button class="tab" data-s="api"><span class="k">API</span>계약 요약</button>
+  </div>
+  <div class="toggles">
+    <button class="tg on" id="tgSpec">명세 표시</button>
+  </div>
+</div>
+
+<div class="flow">
+  <b>화면 흐름</b>
+  <span class="fnode">S0 트윈 설정<i>최초 1회 · L2</i></span><span class="farr">→</span>
+  <span class="fnode">V1 시장 인사이트<i>C · 세계 전체</i></span><span class="farr">→</span>
+  <span class="fnode">V2 이벤트 시뮬<i>B · 사건으로 흔든 세계</i></span><span class="farr">→</span>
+  <span class="fnode">V3 나 트윈<i>A · 내 것만 하이라이트</i></span>
+  <span class="fnote">V2 미완성 시 V1 카드 → V3 직행 경로 유지</span>
+</div>
+
+<!-- ============================ S0 ============================ -->
+<section class="screen on" id="s0">
+  <div class="shead">
+    <div class="eb">S0 · 최초 1회 · P0</div>
+    <h1>나 트윈 설정</h1>
+    <p>V3의 입력 스키마. 이게 확정되지 않으면 V3를 만들 수 없다. (8/1 안건 A-4)</p>
+  </div>
+  <div class="cols">
+    <div class="device">
+      <div class="w solid"><span class="badge" data-b="1">1</span>
+        <div class="wl">투자 성향</div>
+        <div class="wd">안정형 / 균형형 / 공격형 — 단일 선택</div>
+        <div><span class="chip">안정형</span><span class="chip">균형형</span><span class="chip">공격형</span></div>
+      </div>
+      <div class="grid2">
+        <div class="w solid"><span class="badge" data-b="2">2</span>
+          <div class="wl">가용 자금</div>
+          <div class="wd">가상 금액 입력</div><div class="bar m"></div>
+        </div>
+        <div class="w solid"><span class="badge" data-b="3">3</span>
+          <div class="wl">목표</div>
+          <div class="wd">이름 · 기간 · 목표 금액 (복수 가능)</div><div class="bar s"></div>
+        </div>
+      </div>
+      <div class="w solid"><span class="badge" data-b="4">4</span>
+        <div class="wl">보유 종목 · 비중</div>
+        <div class="wd">KOSPI 100 중 선택 + 비중 합 100%</div>
+        <div><span class="chip">삼성전자 30%</span><span class="chip">SK하이닉스 20%</span>
+             <span class="chip">LG에너지솔루션 20%</span><span class="chip">카카오 15%</span><span class="chip">KB금융 15%</span></div>
+      </div>
+      <div class="w"><span class="badge" data-b="5">5</span>
+        <div class="wl">보유 종목이 없다면 — 템플릿 포트폴리오</div>
+        <div class="wd">무보유 유저가 다수일 것이므로 필수. 관심종목만 받는 대안도 있음</div>
+        <div><span class="chip">안정형 템플릿</span><span class="chip">균형형 템플릿</span><span class="chip">성장형 템플릿</span></div>
+      </div>
+      <div class="disc">⚠️ 실계좌 연동 없음 · 전부 가상 프로필입니다. 교육 목적이며 투자 권유가 아닙니다.</div>
+    </div>
+
+    <div class="spec">
+      <div class="sp">
+        <h3>데이터 바인딩 <small>UserTwin · L2 비공개</small></h3>
+        <div class="srow" data-r="1"><div class="t"><span class="n">1</span>투자 성향<span class="pri p0">P0</span></div>
+          <div class="src"><code>UserTwin.profile.riskTolerance</code><br>편향 판정의 기준선. 성향과 어긋난 선택이 편향 신호의 1차 후보</div></div>
+        <div class="srow" data-r="2"><div class="t"><span class="n">2</span>가용 자금<span class="pri p0">P0</span></div>
+          <div class="src"><code>UserTwin.profile.capital</code></div></div>
+        <div class="srow" data-r="3"><div class="t"><span class="n">3</span>목표<span class="pri p0">P0</span></div>
+          <div class="src"><code>UserTwin.profile.goals[] = {name, horizon, target}</code><br>V3의 before→after 목표 영향 계산에 쓰인다</div></div>
+        <div class="srow" data-r="4"><div class="t"><span class="n">4</span>보유 종목<span class="pri p0">P0</span></div>
+          <div class="src"><code>UserTwin.holdings[] = {ticker, weight}</code><br>섹터 멤버십을 경유해 <b>섹터 충격 팩터 × 비중</b> 곱셈의 입력이 된다</div>
+          <div class="warn">weight 합 = 1.0 검증 필수 (트러스트 경계)</div></div>
+        <div class="srow" data-r="5"><div class="t"><span class="n">5</span>템플릿 포트폴리오<span class="pri p0">P0</span></div>
+          <div class="src">【미확정 · 8/1 A-4】 3종 구성을 정해야 함. 무보유 유저가 V3에 도달하는 유일한 경로</div></div>
+      </div>
+      <div class="sp" style="margin-top:14px">
+        <h3>API</h3>
+        <div class="srow"><div class="t">POST /twin</div><div class="src">트윈 저장 · 응답 <code>twinId</code></div></div>
+        <div class="srow"><div class="t">GET /twin</div><div class="src">기존 트윈 조회 (재방문)</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ V1 ============================ -->
+<section class="screen" id="v1">
+  <div class="shead">
+    <div class="eb">V1 · C 시장 인사이트 · ① Base Model · P0</div>
+    <h1>오늘의 시장 세계관</h1>
+    <p>모든 유저에게 동일. 읽기전용(L1). 매일 1회 재구성된 <code>BaseModel</code> 하나만 소비한다.</p>
+  </div>
+  <div class="cols">
+    <div class="device">
+      <div class="w solid"><span class="badge" data-b="1">1</span>
+        <div class="wl">지표 state 10개</div>
+        <div class="wd">오늘 값 + 전일 대비 · 빨강=상승 / 파랑=하락</div>
+        <div class="grid4" style="margin-top:8px">
+          <div class="w" style="margin:0;padding:8px 9px"><div class="wd">미국채10년물<br><b style="color:var(--up)">4.12 ▲0.8%</b></div></div>
+          <div class="w" style="margin:0;padding:8px 9px"><div class="wd">원/달러<br><b style="color:var(--down)">1,318 ▼0.3%</b></div></div>
+          <div class="w" style="margin:0;padding:8px 9px"><div class="wd">WTI<br><b style="color:var(--up)">78.4 ▲1.2%</b></div></div>
+          <div class="w" style="margin:0;padding:8px 9px"><div class="wd">외국인수급<br><b style="color:var(--up)">+2,140억</b></div></div>
+        </div>
+      </div>
+      <div class="w solid"><span class="badge" data-b="2">2</span>
+        <div class="wl">세계관 그래프 <span style="font-weight:600;color:var(--ink3)">매크로 ↔ 섹터 9</span></div>
+        <div class="wd">엣지는 관계DB 73행을 참조해 렌더링만 한다. 값은 그래프에 인라인하지 않음</div>
+        <div class="fake-graph"></div>
+      </div>
+      <div class="grid2">
+        <div class="w solid"><span class="badge" data-b="3">3</span>
+          <div class="wl">섹터 히트맵 9칸</div>
+          <div class="wd">섹터별 등락 + 1차 동인 표기</div>
+          <div class="bar l"></div><div class="bar m"></div><div class="bar s"></div>
+        </div>
+        <div class="w solid"><span class="badge" data-b="4">4</span>
+          <div class="wl">일간 인사이트 리포트</div>
+          <div class="wd">문장마다 근거 관계 id를 단다 — "미10년물 상승이 2차전지에 부담 (R-014)"</div>
+          <div class="bar l"></div><div class="bar l"></div><div class="bar m"></div>
+        </div>
+      </div>
+      <div class="w solid"><span class="badge" data-b="5">5</span>
+        <div class="wl">오늘의 이벤트 카드 3~5장 <span style="font-weight:600;color:var(--ink3)">→ V2 진입점</span></div>
+        <div class="wd">캐시 상태를 카드에 표시: <b>캐시됨(즉시)</b> / <b>미생성(생성 필요)</b> / <b>예정</b></div>
+        <div class="grid3" style="margin-top:8px">
+          <div class="w" style="margin:0"><div class="wd"><b>FOMC 금리 동결</b><br><span class="chip">캐시됨 · 즉시</span></div></div>
+          <div class="w" style="margin:0"><div class="wd"><b>WTI 80달러 근접</b><br><span class="chip">미생성</span></div></div>
+          <div class="w" style="margin:0"><div class="wd"><b>금통위 D-3</b><br><span class="chip">예정</span></div></div>
+        </div>
+      </div>
+      <div class="w"><span class="badge" data-b="6">6</span>
+        <div class="wl">관계 상세 팝오버 <span style="font-weight:600;color:var(--p1)">P1</span></div>
+        <div class="wd">엣지 hover 시 <code>basis</code> · <code>evidence</code> · <code>confidence</code> 노출</div>
+      </div>
+    </div>
+
+    <div class="spec">
+      <div class="sp">
+        <h3>데이터 바인딩 <small>BaseModel · 읽기전용 L1</small></h3>
+        <div class="srow" data-r="1"><div class="t"><span class="n">1</span>지표 state<span class="pri p0">P0</span></div>
+          <div class="src"><code>BaseModel.nodes[type=indicator].state</code></div></div>
+        <div class="srow" data-r="2"><div class="t"><span class="n">2</span>세계관 그래프<span class="pri p0">P0</span></div>
+          <div class="src"><code>BaseModel.nodes</code> + <code>BaseModel.edges[].relationId</code> → <code>RelationDB</code> 조인<br>
+            엣지 색 = <code>sign</code>(+빨강/−파랑) · 굵기 = <code>strength</code>(강/중/약)</div>
+          <div class="warn">엣지는 매크로↔섹터에만. 종목은 <code>membership</code>만 (엣지 수백 → 73)</div></div>
+        <div class="srow" data-r="3"><div class="t"><span class="n">3</span>섹터 히트맵<span class="pri p0">P0</span></div>
+          <div class="src"><code>BaseModel.nodes[type=sector].state.indexChangePct</code></div></div>
+        <div class="srow" data-r="4"><div class="t"><span class="n">4</span>일간 리포트<span class="pri p0">P0</span></div>
+          <div class="src"><code>BaseModel.dailyReport.{headline, body, citedRelations[]}</code><br>
+            배치에서 생성 · 유저 경로 LLM 아님</div></div>
+        <div class="srow" data-r="5"><div class="t"><span class="n">5</span>이벤트 카드<span class="pri p0">P0</span></div>
+          <div class="src">카드 id = <b>시뮬 트리거이자 캐시 키</b>. 캐시 상태는 <code>GET /sim/{cardId}</code> 존재 여부로 판정</div>
+          <div class="warn">【미확정 · 8/1 A-3】 하루 몇 개 · 무엇을 매크로 관련으로 볼 것인가</div></div>
+        <div class="srow" data-r="6"><div class="t"><span class="n">6</span>관계 팝오버<span class="pri p1">P1</span></div>
+          <div class="src"><code>RelationDB[id].{basis, evidence, confidence, reviewedAt}</code></div></div>
+      </div>
+      <div class="sp" style="margin-top:14px">
+        <h3>API</h3>
+        <div class="srow"><div class="t">GET /basemodel?date=</div><div class="src">그날의 세계관 전체 · 하루 불변 → <b>CDN 캐시 가능</b></div></div>
+        <div class="srow"><div class="t">GET /relations</div><div class="src">관계DB 73행 · 분기 갱신 → <b>장기 캐시</b></div></div>
+        <div class="srow"><div class="t">GET /cards?date=</div><div class="src">오늘의 카드 + 각 캐시 상태</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ V2 ============================ -->
+<section class="screen" id="v2">
+  <div class="shead">
+    <div class="eb">V2 · B 사회실험 · ② 이벤트 시뮬 · P1</div>
+    <h1>사건 하나로 흔든 세계</h1>
+    <p>카드당 1회 생성 후 캐시. <b>유저별로 재실행하지 않는다.</b> 대가 4인은 여기 참여하지 않음(결정 #19).</p>
+  </div>
+  <div class="cols">
+    <div class="device">
+      <div class="w solid"><span class="badge" data-b="1">1</span>
+        <div class="wl">생성 진행 UX <span style="font-weight:600;color:var(--ink3)">— 미캐시 카드만</span></div>
+        <div class="wd">잡 등록 → 폴링/SSE → 완료. <b>요청 핸들러에서 인라인 생성 금지</b></div>
+        <div class="bar l"></div>
+        <div class="wd" style="margin-top:6px">매크로 에이전트 12 · 섹터 에이전트 9 · 라운드 6 — 진행률 표시</div>
+      </div>
+      <div class="w solid"><span class="badge" data-b="2">2</span>
+        <div class="wl">타임라인 트레이스</div>
+        <div class="wd">라운드별 에이전트 발언 + 그때 활성화된 관계 엣지</div>
+        <div class="tl">
+          <div>T1 · 미 연준 agent — "동결 기조 유지" <span class="chip">R-003</span></div>
+          <div>T2 · 미10년물 — 하락 반응 <span class="chip">R-011</span></div>
+          <div>T3 · 2차전지 섹터 agent — 할인율 완화 <span class="chip">R-014</span></div>
+          <div>T4 · 금융 섹터 agent — 순이자마진 압박 <span class="chip">R-142</span></div>
+        </div>
+      </div>
+      <div class="w solid"><span class="badge" data-b="3">3</span>
+        <div class="wl">섹터별 충격 팩터 9개 <span style="font-weight:600;color:var(--accent)">→ V3의 계산 입력</span></div>
+        <div class="wd">각 섹터의 <code>sign × strength</code>. <b>이 화면의 진짜 산출물</b></div>
+        <div class="grid3" style="margin-top:8px">
+          <div class="w" style="margin:0;padding:8px"><div class="wd">반도체<br><b style="color:var(--down)">−2</b></div></div>
+          <div class="w" style="margin:0;padding:8px"><div class="wd">2차전지<br><b style="color:var(--down)">−3</b></div></div>
+          <div class="w" style="margin:0;padding:8px"><div class="wd">금융<br><b style="color:var(--up)">+2</b></div></div>
+        </div>
+      </div>
+      <div class="w solid"><span class="badge" data-b="4">4</span>
+        <div class="wl">30일 3경로 — <b>범위</b> 표기</div>
+        <div class="wd">단일 수치 금지. 낙관(빨강↑) / 기준(중립) / 위험(파랑↓)</div>
+        <div class="band"><span class="o"></span><span class="b"></span><span class="r"></span></div>
+      </div>
+      <div class="w"><span class="badge" data-b="5">5</span>
+        <div class="wl">provenance <span style="font-weight:600;color:var(--p1)">P1</span></div>
+        <div class="wd">에이전트 수 · 라운드 수 · 생성 시각 · Base Model 날짜 — 재현성 근거</div>
+      </div>
+      <div class="disc">⚠️ 시뮬레이션 결과이며 실제 시장 예측이 아닙니다. 특정 종목 매매를 권유하지 않습니다.</div>
+    </div>
+
+    <div class="spec">
+      <div class="sp">
+        <h3>데이터 바인딩 <small>EventSimulation · 캐시</small></h3>
+        <div class="srow" data-r="1"><div class="t"><span class="n">1</span>생성 진행<span class="pri p1">P1</span></div>
+          <div class="src">캐시 키 = <code>카드 id + BaseModel 날짜</code>. 같은 키면 항상 같은 결과</div>
+          <div class="warn">동시 최초 클릭 → <b>싱글플라이트</b>로 잡 1개만. 섹터 agent 9개를 한꺼번에 던지면 프롬프트 캐시 전원 미스 — 1개 먼저 보내고 첫 토큰 후 팬아웃</div></div>
+        <div class="srow" data-r="2"><div class="t"><span class="n">2</span>타임라인<span class="pri p0">P0</span></div>
+          <div class="src"><code>EventSimulation.timeline[] = {t, actor, text, activatedRelations[], sentiment}</code></div></div>
+        <div class="srow" data-r="3"><div class="t"><span class="n">3</span>섹터 충격 팩터<span class="pri p0">P0</span></div>
+          <div class="src"><code>EventSimulation.sectorImpact{sectorId: {sign, strength}}</code><br>
+            <b>연결 조인트 #2</b> — V3가 이걸 그대로 곱셈 입력으로 받는다</div></div>
+        <div class="srow" data-r="4"><div class="t"><span class="n">4</span>3경로 전망<span class="pri p0">P0</span></div>
+          <div class="src"><code>forecast.paths.{optimistic|base|risk}.rangePct</code><br>안전 원칙: 단일 수치 금지, 범위만</div></div>
+        <div class="srow" data-r="5"><div class="t"><span class="n">5</span>provenance<span class="pri p1">P1</span></div>
+          <div class="src"><code>provenance.{agentCount, rounds}</code> · <code>generatedAt</code></div></div>
+      </div>
+      <div class="sp" style="margin-top:14px">
+        <h3>API</h3>
+        <div class="srow"><div class="t">GET /sim/{cardId}?date=</div><div class="src">캐시 히트면 즉시 · <b>LLM 0회</b></div></div>
+        <div class="srow"><div class="t">POST /sim/{cardId}</div><div class="src">잡 등록 → <code>jobId</code> 즉시 반환. 키 유니크 제약으로 중복 방지</div></div>
+        <div class="srow"><div class="t">GET /job/{jobId}</div><div class="src">진행 상태 폴링 (또는 SSE)</div></div>
+      </div>
+      <div class="note" style="margin-top:14px">
+        <b>V2는 P1</b> — 임계 경로가 아니다. 늦어지면 V1 카드에서 V3로 직행시키고, V3는 캐시된 <code>sectorImpact</code>만 있으면 동작한다.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ V3 ============================ -->
+<section class="screen" id="v3">
+  <div class="shead">
+    <div class="eb">V3 · A 판단 훈련 · ③ 나 트윈 · P0 · 핵심</div>
+    <h1>내 것만 하이라이트한 세계</h1>
+    <p>유일하게 <b>상호작용</b>하는 화면. 계산은 결정론적 곱셈이고, LLM은 최대 2회만 쓴다.</p>
+  </div>
+  <div class="cols">
+    <div class="device">
+      <div class="w solid"><span class="badge" data-b="1">1</span>
+        <div class="wl">하이라이트 그래프</div>
+        <div class="wd">내 종목 → 소속 섹터 → 연결 매크로만 선명. 나머지는 흐리게 (별도 토글 없음)</div>
+        <div class="hlwrap">
+          <div class="fake-graph"></div>
+          <div class="hlband"><b>내 종목 → 소속 섹터 → 연결 매크로</b></div>
+        </div>
+      </div>
+      <div class="w solid"><span class="badge" data-b="2">2</span>
+        <div class="wl">내 포트폴리오 영향 — 곱셈식 그대로 노출</div>
+        <div class="wd" style="font-family:ui-monospace,Menlo,monospace;font-size:10.5px;line-height:1.9;margin-top:6px">
+          반도체 −2 × 0.50 = −1.00<br>
+          2차전지 −3 × 0.20 = −0.60<br>
+          인터넷 −3 × 0.15 = −0.45<br>
+          금융 +2 × 0.15 = +0.30<br>
+          <b>합계 = −1.75</b>
+        </div>
+        <div class="wd" style="margin-top:6px">LLM 아님 · 유저가 직접 검산할 수 있어야 한다</div>
+      </div>
+      <div class="w solid"><span class="badge" data-b="3">3</span>
+        <div class="wl">대가 4인 참고 <span style="font-weight:600;color:var(--ink3)">— 참고·엔터 요소</span></div>
+        <div><span class="chip">버핏 · 관망</span><span class="chip">달리오 · 균형</span>
+             <span class="chip">캐시 우드 · 매수</span><span class="chip">막스 · 경계</span></div>
+        <div class="disc" style="margin-top:8px">실존 인물의 실제 발언이 아니며, 공개된 투자 원칙을 학습해 재구성한 교육용 시뮬레이션입니다.</div>
+      </div>
+      <div class="grid2">
+        <div class="w solid"><span class="badge" data-b="4">4</span>
+          <div class="wl">내 선택</div>
+          <div><span class="chip">유지</span><span class="chip">일부 실현</span><span class="chip">추가 매수</span></div>
+        </div>
+        <div class="w solid"><span class="badge" data-b="5">5</span>
+          <div class="wl">"왜 그렇게 판단했나" 한 줄</div>
+          <div class="wd">【미확정 · 8/1 B-2】 포함 여부</div><div class="bar m"></div>
+        </div>
+      </div>
+      <div class="w solid"><span class="badge" data-b="6">6</span>
+        <div class="wl">목표 영향 before → after</div>
+        <div class="wd">3년 5천만 달성 확률 · <b>사건 영향과 선택 효과를 분리해 표시</b></div>
+        <div class="wd" style="font-family:ui-monospace,Menlo,monospace;font-size:10.5px;margin-top:6px">
+          70 + 사건 영향 −10.5 + 선택 효과 +8.0 = 68</div>
+      </div>
+      <div class="w solid"><span class="badge" data-b="7">7</span>
+        <div class="wl">편향 카드 · 아키타입</div>
+        <div class="wd">편향이 없으면 <b>"편향 신호 없음"</b>이라고 정직하게 말한다</div>
+        <div><span class="chip">손실회피</span><span class="chip">과신</span><span class="chip">FOMO</span>
+             <span class="chip">현재편향</span><span class="chip">기준점 의존</span></div>
+      </div>
+    </div>
+
+    <div class="spec">
+      <div class="sp">
+        <h3>데이터 바인딩 <small>UserTwin(L2) × EventSimulation(L1)</small></h3>
+        <div class="srow" data-r="1"><div class="t"><span class="n">1</span>하이라이트<span class="pri p0">P0</span></div>
+          <div class="src"><b>연결 조인트 #3</b> — 대상 = BaseModel의 부분집합<br>
+            <code>holdings → membership → sector → edges → macro</code></div></div>
+        <div class="srow" data-r="2"><div class="t"><span class="n">2</span>포트폴리오 영향<span class="pri p0">P0</span></div>
+          <div class="src"><code>sectorImpact[s].sign × strength × Σ holdings.weight</code><br>
+            <b>결정론적 곱셈 · LLM 불필요</b></div>
+          <div class="warn">【미확정 · 8/1 C-3】 간접 경로(2-hop)를 반영할 것인가. MVP는 직접 엣지만 반영 권장</div></div>
+        <div class="srow" data-r="3"><div class="t"><span class="n">3</span>대가 4인<span class="pri p0">P0</span></div>
+          <div class="src"><code>EventSimulation.masterViews[]</code> — V2에서 만들되 <b>V3에서만 소비</b><br>
+            면책 라벨 상시 노출 (결정 #5)</div></div>
+        <div class="srow" data-r="4"><div class="t"><span class="n">4</span>내 선택<span class="pri p0">P0</span></div>
+          <div class="src">3지선다 → <code>biasHistory</code>에 누적</div></div>
+        <div class="srow" data-r="5"><div class="t"><span class="n">5</span>"왜" 입력<span class="pri p0">P0</span></div>
+          <div class="src"><b>LLM 사용처 ① / 2회 중</b> — 이유 문장의 편향 분류<br>
+            선택지만으로는 못 가린다: "일부 실현"이 손실회피일 수도, 사이클 인식일 수도 있음</div></div>
+        <div class="srow" data-r="6"><div class="t"><span class="n">6</span>목표 영향<span class="pri p0">P0</span></div>
+          <div class="src"><code>PersonalizationResult.goalImpact</code><br>
+            <b>LLM 사용처 ② / 2회 중</b> — 결과를 유저 목표 언어로 요약</div>
+          <div class="warn">사건 영향과 선택 효과를 <b>분리해 표시</b>. 합산만 보이면 "위험을 줄였는데 왜 나빠지나"로 읽힌다</div></div>
+        <div class="srow" data-r="7"><div class="t"><span class="n">7</span>편향·아키타입<span class="pri p0">P0</span></div>
+          <div class="src"><code>detectedBias[]</code> · <code>archetype</code>(가치/매크로/성장/사이클)<br>
+            누적 리포트·아키타입 확정은 <span class="pri p1" style="margin:0">P1</span></div></div>
+      </div>
+      <div class="sp" style="margin-top:14px">
+        <h3>API</h3>
+        <div class="srow"><div class="t">POST /personalize</div><div class="src"><code>{twinId, cardId}</code> → 하이라이트 대상 + 포트폴리오 영향 (곱셈, LLM 0회)</div></div>
+        <div class="srow"><div class="t">POST /choice</div><div class="src"><code>{twinId, cardId, choice, reason}</code> → 편향 판정 + 목표 영향 (LLM ≤2회)</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ API ============================ -->
+<section class="screen" id="api">
+  <div class="shead">
+    <div class="eb">계약 요약</div>
+    <h1>API &amp; 데이터 계약</h1>
+    <p>이 표만 합의되면 배치·생성기·서버·화면이 서로를 기다리지 않고 병렬로 간다.</p>
+  </div>
+
+  <h2 class="sec">API 8개</h2>
+  <table>
+    <tr><th style="width:200px">엔드포인트</th><th style="width:110px">소비 화면</th><th>반환 / 비고</th><th style="width:100px">캐시</th></tr>
+    <tr><td><code>GET /basemodel?date=</code></td><td>V1·V2·V3</td><td><code>BaseModel</code> 전체. 하루 불변</td><td>CDN · 1일</td></tr>
+    <tr><td><code>GET /relations</code></td><td>V1</td><td><code>RelationDB</code> 73행. 분기 갱신</td><td>장기</td></tr>
+    <tr><td><code>GET /cards?date=</code></td><td>V1</td><td>카드 3~5장 + 각 캐시 상태</td><td>1일</td></tr>
+    <tr><td><code>GET /sim/{cardId}?date=</code></td><td>V2·V3</td><td><code>EventSimulation</code>. 히트 시 <b>LLM 0회</b></td><td>영구(키 단위)</td></tr>
+    <tr><td><code>POST /sim/{cardId}</code></td><td>V2</td><td>잡 등록 → <code>jobId</code> 즉시 반환</td><td>싱글플라이트</td></tr>
+    <tr><td><code>GET /job/{jobId}</code></td><td>V2</td><td>진행 상태 (폴링 또는 SSE)</td><td>—</td></tr>
+    <tr><td><code>POST /twin</code> · <code>GET /twin</code></td><td>S0·V3</td><td><code>UserTwin</code> 저장/조회 (L2)</td><td>없음</td></tr>
+    <tr><td><code>POST /personalize</code> · <code>POST /choice</code></td><td>V3</td><td>곱셈 결과 / 편향 판정 (LLM ≤2회)</td><td>없음</td></tr>
+  </table>
+
+  <h2 class="sec">화면 × 계약 매트릭스</h2>
+  <table>
+    <tr><th style="width:140px">화면</th><th>BaseModel</th><th>RelationDB</th><th>EventSimulation</th><th>UserTwin</th><th style="width:70px">MVP</th></tr>
+    <tr><td><b>S0</b> 트윈 설정</td><td>종목 목록만</td><td>—</td><td>—</td><td><b>쓰기</b></td><td>P0</td></tr>
+    <tr><td><b>V1</b> 시장 인사이트</td><td><b>전체</b></td><td><b>렌더·근거</b></td><td>캐시 상태만</td><td>—</td><td>P0</td></tr>
+    <tr><td><b>V2</b> 이벤트 시뮬</td><td>그날의 세계관</td><td>활성화 연출</td><td><b>전체</b></td><td>—</td><td>P1</td></tr>
+    <tr><td><b>V3</b> 나 트윈</td><td>하이라이트 대상</td><td>근거 인용</td><td><b>sectorImpact</b></td><td><b>읽기+쓰기</b></td><td>P0</td></tr>
+  </table>
+
+  <h2 class="sec">공통 컴포넌트</h2>
+  <table>
+    <tr><th style="width:180px">컴포넌트</th><th>규칙</th></tr>
+    <tr><td>안전·면책 레이어</td><td>전 화면 공통. 페르소나 면책 라벨 상시 · 교육용 고지 · 상품 추천 금지</td></tr>
+    <tr><td>차트 색</td><td><b style="color:var(--up)">빨강 = 상승/촉진</b> · <b style="color:var(--down)">파랑 = 하락/억제</b> (한국 시장 관례)</td></tr>
+    <tr><td>전망 표기</td><td>단일 수치 금지 → <b>범위</b>(<code>rangePct</code>). 3경로는 diverging</td></tr>
+    <tr><td>관계 강도</td><td><b>강/중/약 3단계 질적 값</b>. <code>0.73</code> 같은 근거 없는 정밀 수치 금지</td></tr>
+    <tr><td>엣지 인코딩</td><td>색 = <code>sign</code> · 굵기 = <code>strength</code> · 점선 = <code>regulates</code></td></tr>
+  </table>
+
+  <div class="note">
+    <b>LLM 호출 예산</b> — 하루 무거운 생성 = <b>BaseModel 1회 + 이벤트 카드 3~5회</b>.
+    유저 경로는 <b>세션당 ≤2회</b>(편향 분류 · 결과 요약)이고, 캐시 히트 시 <b>0회</b>.
+    이 예산을 넘기는 설계가 나오면 그건 구조가 틀린 것이다.
+  </div>
+
+  <div class="safety">
+    <b>안전 원칙 (전 화면 강제)</b><br>
+    · 가격·수익·시장 방향 <b>단정 금지</b> → 조건부 범위 + 신뢰구간으로만 표기<br>
+    · <b>실계좌 연동 없음</b> — 전부 가상 프로필<br>
+    · <b>상품 추천 금지</b> — 특정 종목 매매 권유로 읽힐 문구 금지<br>
+    · 대가 페르소나 <b>면책 라벨 상시</b> — 실존 인물의 실제 발언이 아님을 항상 명시
+  </div>
+
+  <div class="note" style="border-left-color:#d97706">
+    <b>이 목업에서 아직 못 정한 것</b> (8/1 안건)<br>
+    · 이벤트 카드 선별 기준 — 하루 몇 개 · 무엇을 매크로 관련으로 볼 것인가 <b>(A-3)</b><br>
+    · 트윈 템플릿 포트폴리오 3종 구성 <b>(A-4)</b><br>
+    · "왜 그렇게 판단했나" 입력 포함 여부 <b>(B-2)</b><br>
+    · 간접 경로(2-hop) 전파 규칙 — <code>WTI → CPI → 소비재</code>를 섹터 충격에 반영할 것인가 <b>(C-3)</b><br>
+    · 경량 시뮬 생성 시간 → V2 진행 UX의 목표 SLO <b>(C-1)</b>
+  </div>
+</section>
+
+<div class="foot" style="margin-top:30px;font-size:11.5px;color:var(--ink3);line-height:1.8">
+  근거 문서 — <b>PRD v0.5</b> §6 데이터 계약 · §8 화면 명세 · §10.1 성능 지침 ·
+  <b>결정 #14</b>(4층) · <b>#15</b>(섹터) · <b>#16</b>(관계DB) · <b>#18</b>(온디맨드+캐시) · <b>#19</b>(대가=V3 전용)<br>
+  이 파일은 <b>구현용 명세</b>입니다. 동작하는 프로토타입은 <code>finverse-world.html</code>(세계관 그래프) ·
+  <code>finverse-simulation.html</code>(C→B→A 흐름)을 참고하세요.
+</div>
+
+</div>
+
+<script>
+(function(){
+  var tabs = document.querySelectorAll('.tab');
+  tabs.forEach(function(t){
+    t.addEventListener('click', function(){
+      tabs.forEach(function(x){x.classList.remove('on')});
+      t.classList.add('on');
+      document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('on')});
+      var el = document.getElementById(t.dataset.s);
+      if(el) el.classList.add('on');
+      window.scrollTo({top:0,behavior:'smooth'});
+    });
+  });
+
+  /* 목업 블록 ↔ 명세 행 상호 하이라이트 */
+  function link(scope){
+    scope.querySelectorAll('.badge').forEach(function(b){
+      b.addEventListener('mouseenter', function(){ mark(scope, b.dataset.b, true) });
+      b.addEventListener('mouseleave', function(){ mark(scope, b.dataset.b, false) });
+    });
+    scope.querySelectorAll('.srow[data-r]').forEach(function(r){
+      r.addEventListener('mouseenter', function(){ mark(scope, r.dataset.r, true) });
+      r.addEventListener('mouseleave', function(){ mark(scope, r.dataset.r, false) });
+    });
+  }
+  function mark(scope, n, on){
+    var b = scope.querySelector('.badge[data-b="'+n+'"]');
+    var r = scope.querySelector('.srow[data-r="'+n+'"]');
+    if(b) b.classList.toggle('hl', on);
+    if(r) r.classList.toggle('hl', on);
+  }
+  document.querySelectorAll('.screen').forEach(link);
+
+  /* 명세 패널 토글 */
+  var tg = document.getElementById('tgSpec');
+  tg.addEventListener('click', function(){
+    var on = tg.classList.toggle('on');
+    document.querySelectorAll('.spec').forEach(function(s){ s.style.display = on ? '' : 'none' });
+    document.querySelectorAll('.cols').forEach(function(c){ c.style.gridTemplateColumns = on ? '' : '1fr' });
+  });
+})();
+</script>
+</body>
+</html>
