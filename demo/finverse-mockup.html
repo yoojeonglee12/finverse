@@ -1,0 +1,609 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<!-- FINVERSE-DOC · AI 어시스트 작성 · 원본 소스코드와 구분되는 산출물 -->
+<!-- 용도: 구현용 화면 목업 + 데이터 바인딩/API 명세. 근거: PRD v0.6 · docs/ontology/finverse-ontology.md · app/page.tsx -->
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FINVERSE · 화면 목업 &amp; 데이터 바인딩 명세 (v0.6)</title>
+<style>
+  :root{
+    --bg:#f4f5f6; --surface:#fff; --ink:#17181b; --ink2:#585d64; --ink3:#9aa0a7;
+    --line:#e5e7ea; --line2:#eef0f2; --wire:#c9ced4; --wirefill:#f0f2f4;
+    --up:#e34948; --down:#2a78d6; --dark:#141518; --accent:#2f6be0;
+    --p0:#1f7a4d; --p1:#9a6b12; --radius:14px;
+  }
+  *{box-sizing:border-box} html,body{margin:0}
+  body{background:var(--bg);color:var(--ink);line-height:1.5;padding:0 18px 72px;
+    font-family:'Pretendard','Pretendard Variable',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1240px;margin:0 auto}
+
+  .topbar{position:sticky;top:0;z-index:30;background:rgba(244,245,246,.9);backdrop-filter:blur(8px) saturate(1.2);
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:15px 0 13px;border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:16.5px;letter-spacing:-.02em}
+  .brand .mark{width:26px;height:26px;border-radius:8px;background:var(--dark);color:#fff;display:grid;place-items:center;font-size:13px}
+  .brand small{font-weight:600;color:var(--ink3);font-size:12px;letter-spacing:0}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap}
+  .tab{border:1px solid var(--line);background:#fff;color:var(--ink2);border-radius:999px;padding:7px 13px;
+    font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s;display:flex;gap:7px;align-items:center}
+  .tab .k{font-size:10px;font-weight:800;color:var(--ink3);background:var(--line2);border-radius:5px;padding:1px 5px}
+  .tab:hover{border-color:#d3d7dc}
+  .tab.on{background:var(--dark);color:#fff;border-color:var(--dark)}
+  .tab.on .k{background:rgba(255,255,255,.22);color:#fff}
+  .toggles{margin-left:auto;display:flex;gap:8px;align-items:center}
+  .tg{font-size:11.5px;font-weight:700;color:var(--ink2);border:1px solid var(--line);background:#fff;
+    border-radius:999px;padding:6px 11px;cursor:pointer;font-family:inherit}
+  .tg.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+  .flow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:20px 0 4px;
+    background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:13px 15px}
+  .flow b{font-size:12px;color:var(--ink3);font-weight:800;letter-spacing:.08em;margin-right:4px}
+  .fnode{border:1px solid var(--line);border-radius:9px;padding:6px 11px;font-size:12.5px;font-weight:700;background:var(--surface)}
+  .fnode i{font-style:normal;color:var(--ink3);font-weight:700;font-size:10.5px;display:block}
+  .farr{color:var(--ink3);font-size:14px}
+  .fnote{font-size:11.5px;color:var(--ink3);margin-left:auto;font-weight:600}
+
+  .screen{display:none;margin-top:18px}
+  .screen.on{display:block}
+  .shead{margin:0 0 14px}
+  .shead .eb{font-size:10.5px;letter-spacing:.16em;font-weight:800;color:var(--ink3);text-transform:uppercase}
+  .shead h1{font-size:21px;margin:5px 0 3px;letter-spacing:-.02em;font-weight:800}
+  .shead p{margin:0;color:var(--ink2);font-size:13.5px}
+  .cols{display:grid;grid-template-columns:1fr 400px;gap:18px;align-items:start}
+  @media(max-width:1080px){.cols{grid-template-columns:1fr}}
+
+  .device{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:30px 16px 16px;position:relative}
+  .device::before{content:'WIREFRAME';position:absolute;top:11px;right:15px;font-size:9.5px;letter-spacing:.16em;color:var(--ink3);font-weight:800}
+  .w{border:1.5px dashed var(--wire);border-radius:10px;background:var(--wirefill);padding:11px 13px;position:relative;margin-bottom:10px}
+  .w.solid{border-style:solid;background:#fff}
+  .w .wl{font-size:11px;font-weight:800;color:var(--ink2);letter-spacing:-.01em;display:flex;align-items:center;gap:6px}
+  .w .wd{font-size:11px;color:var(--ink3);margin-top:3px;line-height:1.55}
+  .badge{position:absolute;top:-8px;left:11px;width:19px;height:19px;border-radius:50%;background:var(--dark);color:#fff;
+    display:grid;place-items:center;font-size:10px;font-weight:800;cursor:pointer;z-index:2}
+  .badge.hl{background:var(--accent);transform:scale(1.15)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .bar{height:7px;border-radius:4px;background:#dfe3e7;margin-top:6px}
+  .bar.s{width:62%} .bar.m{width:84%} .bar.l{width:96%}
+  .chip{display:inline-block;border:1px solid var(--wire);border-radius:999px;padding:3px 9px;font-size:10.5px;
+    font-weight:700;color:var(--ink2);background:#fff;margin:3px 4px 0 0}
+  .chip.on{background:var(--dark);color:#fff;border-color:var(--dark)}
+  .fake-graph{height:126px;border-radius:8px;background:
+     radial-gradient(circle at 20% 30%, #d8dde3 0 6px, transparent 7px),
+     radial-gradient(circle at 20% 68%, #d8dde3 0 6px, transparent 7px),
+     radial-gradient(circle at 44% 20%, #cdd3da 0 8px, transparent 9px),
+     radial-gradient(circle at 46% 52%, #cdd3da 0 9px, transparent 10px),
+     radial-gradient(circle at 44% 82%, #cdd3da 0 8px, transparent 9px),
+     radial-gradient(circle at 72% 34%, #d8dde3 0 6px, transparent 7px),
+     radial-gradient(circle at 74% 64%, #d8dde3 0 6px, transparent 7px),
+     linear-gradient(#f7f8f9,#f7f8f9);
+     border:1px solid var(--line2);margin-top:8px;position:relative}
+  .fake-graph::after{content:'엔터티 42 · 관계 68 · 스키마 7 · 드래그/줌/팬 가능';
+     position:absolute;bottom:7px;left:10px;font-size:10px;color:var(--ink3);font-weight:600}
+  .step{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:9px;padding:9px 11px;margin-bottom:7px;background:#fff}
+  .step .n{width:22px;height:22px;border-radius:6px;background:var(--line2);color:var(--ink2);display:grid;place-items:center;
+    font-size:10px;font-weight:800;flex:none}
+  .step.done .n{background:#e6f4ec;color:var(--p0)} .step.act .n{background:var(--accent);color:#fff}
+  .step b{font-size:11.5px;display:block} .step code{font-size:10px;color:var(--ink3);font-family:ui-monospace,Menlo,monospace}
+  .step .st{margin-left:auto;font-size:9.5px;font-weight:800;color:var(--ink3);flex:none;align-self:center}
+  .step.done .st{color:var(--p0)} .step.act .st{color:var(--accent)}
+  .band{height:52px;border-radius:8px;margin-top:8px;border:1px solid var(--line2);background:linear-gradient(90deg,#f7f8f9,#fff);position:relative}
+  .band span{position:absolute;left:6%;transform:translateY(-50%);height:9px;border-radius:5px;opacity:.55}
+  .band .o{width:80%;background:var(--up);top:26%}
+  .band .b{width:58%;background:#b9bec4;top:52%}
+  .band .r{width:40%;background:var(--down);top:78%}
+  .disc{font-size:10px;color:var(--ink3);border-top:1px dashed var(--line);padding-top:8px;margin-top:6px;line-height:1.6}
+
+  .spec{position:sticky;top:74px}
+  .sp{background:#fff;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+  .sp h3{margin:0;padding:13px 15px;font-size:13px;font-weight:800;border-bottom:1px solid var(--line);letter-spacing:-.01em}
+  .sp h3 small{font-weight:600;color:var(--ink3);font-size:11px;margin-left:6px}
+  .srow{padding:11px 15px;border-bottom:1px solid var(--line2);cursor:pointer;transition:.12s}
+  .srow:last-child{border-bottom:0}
+  .srow:hover{background:#fafbfc}
+  .srow.hl{background:#f0f5ff}
+  .srow .t{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700}
+  .srow .n{width:18px;height:18px;border-radius:50%;background:var(--dark);color:#fff;display:grid;place-items:center;
+    font-size:9.5px;font-weight:800;flex:none}
+  .pri{font-size:9.5px;font-weight:800;border-radius:5px;padding:1px 5px;margin-left:auto;flex:none}
+  .pri.p0{background:#e6f4ec;color:var(--p0)} .pri.p1{background:#fdf4e0;color:var(--p1)}
+  .srow .src{font-size:11px;color:var(--ink2);margin-top:5px;line-height:1.6}
+  .srow code{background:var(--line2);border-radius:4px;padding:1px 5px;font-size:10.5px;font-family:ui-monospace,Menlo,monospace;color:#3d4148}
+  .srow .warn{color:#9a3412;background:#fff4ed;border-radius:6px;padding:5px 8px;font-size:10.5px;margin-top:6px;font-weight:600}
+  .srow .ok{color:#166534;background:#eefaf2;border-radius:6px;padding:5px 8px;font-size:10.5px;margin-top:6px;font-weight:600}
+
+  table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+  th,td{text-align:left;padding:10px 13px;font-size:12px;border-bottom:1px solid var(--line2);vertical-align:top}
+  th{background:#fafbfc;font-weight:800;color:var(--ink2);font-size:11px}
+  tr:last-child td{border-bottom:0}
+  td code{background:var(--line2);border-radius:4px;padding:1px 5px;font-size:11px;font-family:ui-monospace,Menlo,monospace}
+  h2.sec{font-size:15px;font-weight:800;margin:26px 0 11px;letter-spacing:-.01em}
+  .note{background:#fff;border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:10px;
+    padding:12px 15px;font-size:12.5px;color:var(--ink2);line-height:1.7;margin-top:12px}
+  .note b{color:var(--ink)}
+  .note.warn{border-left-color:#d97706}
+  .safety{background:#fffdf6;border:1px solid #f0e5c8;border-radius:10px;padding:12px 15px;font-size:12px;
+    color:#6b5a2a;line-height:1.7;margin-top:12px}
+  .foot{margin-top:30px;font-size:11.5px;color:var(--ink3);line-height:1.8}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="topbar">
+  <div class="brand"><span class="mark">F</span>FINVERSE <small>화면 목업 &amp; 데이터 바인딩 · v0.6</small></div>
+  <div class="tabs">
+    <button class="tab on" data-s="s0"><span class="k">S0</span>시나리오 빌더</button>
+    <button class="tab" data-s="s1"><span class="k">S1</span>빌드 6단계</button>
+    <button class="tab" data-s="v1"><span class="k">V1</span>시장 인사이트</button>
+    <button class="tab" data-s="v2"><span class="k">V2</span>시나리오 상세</button>
+    <button class="tab" data-s="v3"><span class="k">V3</span>마이 금융 트윈</button>
+    <button class="tab" data-s="api"><span class="k">API</span>계약 요약</button>
+  </div>
+  <div class="toggles"><button class="tg on" id="tgSpec">명세 표시</button></div>
+</div>
+
+<div class="flow">
+  <b>흐름</b>
+  <span class="fnode">S0 질문·시드 입력<i>사용자 프롬프트</i></span><span class="farr">→</span>
+  <span class="fnode">S1 온톨로지·그래프·시뮬<i>6단계 파이프라인</i></span><span class="farr">→</span>
+  <span class="fnode">V1·V2 시나리오<i>정보제공</i></span><span class="farr">→</span>
+  <span class="fnode">V3 내 자산에 적용<i>상호작용</i></span>
+  <span class="fnote">시나리오 = 두 탭을 잇는 유일한 객체</span>
+</div>
+
+<!-- ===================== S0 ===================== -->
+<section class="screen on" id="s0">
+  <div class="shead">
+    <div class="eb">S0 · 시나리오 빌더 (모달) · P0 · 【구현됨 — UI】</div>
+    <h1>질문에서 시작한다</h1>
+    <p>v0.5와 가장 크게 달라진 지점. 미리 구운 세계관을 보는 게 아니라 <b>사용자 질문이 파이프라인을 켠다.</b></p>
+  </div>
+  <div class="cols">
+    <div class="device">
+      <div class="w solid"><span class="badge" data-b="1">1</span>
+        <div class="wl">사용자 프롬프트</div>
+        <div class="wd">자연어 질문. 검색 범위와 온톨로지 구성이 여기서 결정된다</div>
+        <div class="wd" style="margin-top:6px;color:var(--ink2);font-style:italic">
+          "8월 말까지 외국인 수급과 반도체 실적이 KOSPI에 미치는 영향을 비교해줘."</div>
+      </div>
+      <div class="w solid"><span class="badge" data-b="2">2</span>
+        <div class="wl">환경 시드 선택</div>
+        <div class="wd">시나리오의 전제 조건. 복수 선택</div>
+        <div><span class="chip on">외국인 순매수 회복</span><span class="chip on">SK하이닉스 실적 서프라이즈</span>
+             <span class="chip">AI CapEx 둔화</span><span class="chip">원화 약세 재확산</span></div>
+      </div>
+      <div class="grid2">
+        <div class="w solid"><span class="badge" data-b="3">3</span>
+          <div class="wl">기간</div>
+          <div><span class="chip">7일</span><span class="chip on">30일</span><span class="chip">90일</span></div>
+        </div>
+        <div class="w"><span class="badge" data-b="4">4</span>
+          <div class="wl">파일 업로드 <span style="font-weight:600;color:var(--p1)">P1</span></div>
+          <div class="wd">사용자 자료를 시드로 추가</div><div class="bar s"></div>
+        </div>
+      </div>
+      <div class="w solid" style="text-align:center;padding:14px">
+        <div class="wl" style="justify-content:center">▶ 시나리오 만들기 → S1로</div>
+      </div>
+      <div class="disc">⚠️ 교육 목적의 시뮬레이션이며 투자 권유가 아닙니다. 실계좌 연동 없음.</div>
+    </div>
+    <div class="spec">
+      <div class="sp">
+        <h3>데이터 바인딩 <small>온톨로지 입력 · PRD §6.1</small></h3>
+        <div class="srow" data-r="1"><div class="t"><span class="n">1</span>프롬프트<span class="pri p0">P0</span></div>
+          <div class="src"><code>ontology.prompt</code><br>단계 01의 입력. <b>검색 범위 결정 근거</b></div>
+          <div class="warn">【리스크】 프롬프트가 캐시 키가 되면 한 글자만 달라도 전체 재실행. 정규화된 <b>시드 조합 + 기간</b>을 키로 쓸 것 (PRD §9.1)</div></div>
+        <div class="srow" data-r="2"><div class="t"><span class="n">2</span>환경 시드<span class="pri p0">P0</span></div>
+          <div class="src"><code>ontology.seeds[]</code><br>지식그래프 프리뷰의 seed 노드로도 쓰인다</div></div>
+        <div class="srow" data-r="3"><div class="t"><span class="n">3</span>기간<span class="pri p0">P0</span></div>
+          <div class="src"><code>ontology.period</code> → <code>Scenario.duration</code> · 예측 경로 길이</div></div>
+        <div class="srow" data-r="4"><div class="t"><span class="n">4</span>파일 업로드<span class="pri p1">P1</span></div>
+          <div class="src"><code>UploadedSeed</code> — 현재 UI만. 파싱·인덱싱 미구현</div></div>
+      </div>
+      <div class="sp" style="margin-top:14px">
+        <h3>검색 원칙 <small>온톨로지 문서 §검색 원칙</small></h3>
+        <div class="srow"><div class="t">사용자 지정 정보</div><div class="src"><b>반드시 검색</b></div></div>
+        <div class="srow"><div class="t">누락된 필수 정보</div><div class="src">LLM이 판단해 <b>추가 검색</b></div></div>
+        <div class="srow"><div class="t">영향 작음 / 근거 부족</div><div class="src"><b>중립 처리</b></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== S1 ===================== -->
+<section class="screen" id="s1">
+  <div class="shead">
+    <div class="eb">S1 · 빌드 진행 화면 · P0 · 【UI 구현됨 / 백엔드 미구현】</div>
+    <h1>온톨로지 → 그래프 → 에이전트 → 시뮬</h1>
+    <p>6단계가 <code>WAITING / IN PROGRESS / COMPLETED</code>로 진행된다. <b>이 화면이 비동기 잡 큐를 전제로 만들어져 있다.</b></p>
+  </div>
+  <div class="cols">
+    <div class="device">
+      <div class="w solid"><span class="badge" data-b="1">1</span>
+        <div class="wl">지식그래프 실시간 렌더</div>
+        <div class="wd">단계가 진행되면서 노드·엣지가 늘어난다. 드래그·줌·팬 가능</div>
+        <div class="fake-graph"></div>
+      </div>
+      <div class="w solid"><span class="badge" data-b="2">2</span>
+        <div class="wl">6단계 진행 패널</div>
+        <div class="step done"><span class="n">01</span><div><b>Ontology Generation</b><code>POST /api/graph/ontology/generate</code></div><span class="st">COMPLETED</span></div>
+        <div class="step done"><span class="n">02</span><div><b>GraphRAG Build</b><code>POST /api/graph/build</code></div><span class="st">COMPLETED</span></div>
+        <div class="step act"><span class="n">03</span><div><b>Generate Agent Profiles</b><code>POST /api/simulation/prepare</code></div><span class="st">IN PROGRESS</span></div>
+        <div class="step"><span class="n">04</span><div><b>Generate Config</b><code>POST /api/simulation/prepare</code></div><span class="st">WAITING</span></div>
+        <div class="step"><span class="n">05</span><div><b>Initial Activation</b><code>POST /api/simulation/prepare</code></div><span class="st">WAITING</span></div>
+        <div class="step"><span class="n">06</span><div><b>Scenario Simulation</b><code>POST /api/simulation/start</code></div><span class="st">WAITING</span></div>
+      </div>
+      <div class="grid3">
+        <div class="w"><div class="wd"><b>42</b><br>ENTITY NODES</div></div>
+        <div class="w"><div class="wd"><b>68</b><br>RELATION EDGES</div></div>
+        <div class="w"><div class="wd"><b>7</b><br>SCHEMA TYPES</div></div>
+      </div>
+      <div class="w solid"><span class="badge" data-b="3">3</span>
+        <div class="wl">에이전트 프로필 <span style="font-weight:600;color:var(--ink3)">24명</span></div>
+        <div class="wd">엔터티에서 파생. 각자 역할·성향·활동량·편향을 가진다</div>
+        <div><span class="chip">외국인 수급 · Flow Analyst · SUPPORTIVE</span><span class="chip">반도체 실적 · Earnings · BULLISH</span>
+             <span class="chip">거시경제 · Macro · NEUTRAL</span><span class="chip">시장 심리 · Sentiment · CAUTIOUS</span></div>
+      </div>
+      <div class="w solid"><span class="badge" data-b="4">4</span>
+        <div class="wl">시뮬 설정 — 활동 시간대 가중치</div>
+        <div class="grid4" style="margin-top:8px">
+          <div class="w" style="margin:0;padding:8px"><div class="wd">Peak 19–22<br><b>×1.5</b></div></div>
+          <div class="w" style="margin:0;padding:8px"><div class="wd">Work 09–18<br><b>×0.7</b></div></div>
+          <div class="w" style="margin:0;padding:8px"><div class="wd">Morning 06–08<br><b>×0.4</b></div></div>
+          <div class="w" style="margin:0;padding:8px"><div class="wd">Off 00–05<br><b>×0.05</b></div></div>
+        </div>
+      </div>
+      <div class="w"><span class="badge" data-b="5">5</span>
+        <div class="wl">내러티브 가이드 · 핫토픽 · 활성화 시퀀스</div>
+        <div><span class="chip"># KOSPI</span><span class="chip"># 외국인 순매수</span><span class="chip"># SK하이닉스</span>
+             <span class="chip"># AI CapEx</span><span class="chip"># 원·달러</span></div>
+      </div>
+    </div>
+    <div class="spec">
+      <div class="sp">
+        <h3>데이터 바인딩 <small>PRD §4 · §6.1~6.3</small></h3>
+        <div class="srow" data-r="1"><div class="t"><span class="n">1</span>지식그래프<span class="pri p0">P0</span></div>
+          <div class="src"><code>graph.nodes[]</code> · <code>graph.edges[]</code><br>
+            엔터티 7종: 지수·종목·섹터·이벤트·환율·수급·금리<br>
+            관계 6종: <code>DRIVES IMPACTS TRACKS CORRELATES_WITH CONSTRAINS TRIGGERS</code></div>
+          <div class="warn">【미확정 · 오픈이슈 1】 6종의 <b>의미 경계가 정의되지 않았다.</b> 방향·부호·강도를 어디에 담을지도 미정 → 그래프 빌드를 못 짬</div></div>
+        <div class="srow" data-r="2"><div class="t"><span class="n">2</span>6단계 진행<span class="pri p0">P0</span></div>
+          <div class="src">각 단계 <code>WAITING|IN PROGRESS|COMPLETED</code></div>
+          <div class="ok">이 UI가 <b>비동기 잡 큐를 이미 전제</b>하고 있다. 요청 핸들러에서 시뮬을 돌리지 말 것</div></div>
+        <div class="srow" data-r="3"><div class="t"><span class="n">3</span>에이전트 프로필<span class="pri p0">P0</span></div>
+          <div class="src"><code>{name, handle, type, stance, body}</code> × 24</div>
+          <div class="warn">【미확정 · 오픈이슈 2】 24명이 <b>V2의 3인 해석으로 어떻게 집계</b>되는지 규칙이 없다</div></div>
+        <div class="srow" data-r="4"><div class="t"><span class="n">4</span>시뮬 설정<span class="pri p0">P0</span></div>
+          <div class="src"><code>rounds:24 · roundDuration:60min · hourWeights{}</code></div>
+          <div class="warn">24명 × 24라운드 × 시간대 가중 ≈ <b>수백 회 LLM 호출 / 질문 1건</b>. PRD §9.1 캐시 전략 필수</div></div>
+        <div class="srow" data-r="5"><div class="t"><span class="n">5</span>활성화<span class="pri p0">P0</span></div>
+          <div class="src"><code>narrativeGuide</code> · <code>hotTopics[]</code> · <code>activationSequence[]</code></div></div>
+      </div>
+      <div class="note" style="margin-top:14px">
+        <b>비용이 여기서 결정된다.</b> 화면은 이미 있고 백엔드가 없다 — 지금 병목은 프론트가 아니라 <code>Scenario</code>를 실제로 만드는 쪽이다.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== V1 ===================== -->
+<section class="screen" id="v1">
+  <div class="shead">
+    <div class="eb">V1 · 시장 인사이트 탭 · P0 · 【구현됨】</div>
+    <h1>오늘 시장이 왜 움직였나</h1>
+    <p>정보제공. 시나리오 목록의 진입점이다.</p>
+  </div>
+  <div class="cols">
+    <div class="device">
+      <div class="w solid"><span class="badge" data-b="1">1</span>
+        <div class="wl">시장 연결 — 지수 기여도</div>
+        <div class="wd">개별 종목·환율·수급이 지수 변동에 얼마나 기여했나(%p)</div>
+        <div class="grid3" style="margin-top:8px">
+          <div class="w" style="margin:0;padding:8px"><div class="wd">SK하이닉스<br><b style="color:var(--down)">−14.65%</b><br>기여 −2.42%p</div></div>
+          <div class="w" style="margin:0;padding:8px"><div class="wd">외국인 수급<br><b style="color:var(--down)">−5조 1,200억</b><br>기여 −3.12%p</div></div>
+          <div class="w" style="margin:0;padding:8px"><div class="wd">원·달러<br><b style="color:var(--up)">1,462.50</b><br>기여 +0.12%p</div></div>
+        </div>
+      </div>
+      <div class="w solid"><span class="badge" data-b="2">2</span>
+        <div class="wl">지수 차트 — 실제 경로 + 시나리오 예측</div>
+        <div class="wd">과거 실적 경로에 선택 시나리오의 예측 경로를 이어 붙인다</div>
+        <div class="band"><span class="o"></span><span class="b"></span><span class="r"></span></div>
+      </div>
+      <div class="w solid"><span class="badge" data-b="3">3</span>
+        <div class="wl">시나리오 목록 <span style="font-weight:600;color:var(--ink3)">→ V2 진입점</span></div>
+        <div class="grid3" style="margin-top:8px">
+          <div class="w" style="margin:0"><div class="wd"><b>KOSPI 조건부 반등</b><br><span class="chip" style="color:var(--up)">+24.5% · 상승</span></div></div>
+          <div class="w" style="margin:0"><div class="wd"><b>반도체 실적 미스</b><br><span class="chip" style="color:var(--down)">−13.8% · 하락</span></div></div>
+          <div class="w" style="margin:0"><div class="wd"><b>외국인 매도 재확산</b><br><span class="chip" style="color:var(--down)">−9.0% · 하락</span></div></div>
+        </div>
+      </div>
+      <div class="w"><span class="badge" data-b="4">4</span>
+        <div class="wl">+ 내 시나리오 직접 만들기 <span style="font-weight:600;color:var(--ink3)">→ S0</span></div>
+      </div>
+    </div>
+    <div class="spec">
+      <div class="sp">
+        <h3>데이터 바인딩 <small>Scenario[] · 시장 스냅샷</small></h3>
+        <div class="srow" data-r="1"><div class="t"><span class="n">1</span>시장 연결<span class="pri p0">P0</span></div>
+          <div class="src"><code>marketConnections[]</code> = <code>{symbol,name,code,value,change,contribution,tone}</code></div>
+          <div class="warn">현재 <b>하드코딩</b>. 데이터 수집 모듈이 채워야 함 (PRD §5 시장 영역)</div></div>
+        <div class="srow" data-r="2"><div class="t"><span class="n">2</span>지수 차트<span class="pri p0">P0</span></div>
+          <div class="src"><code>actualPath[]</code> + <code>Scenario.path[]</code><br>색: 빨강=상승 / 파랑=하락 (한국 관례)</div></div>
+        <div class="srow" data-r="3"><div class="t"><span class="n">3</span>시나리오 목록<span class="pri p0">P0</span></div>
+          <div class="src"><code>Scenario{id,title,duration,tags,forecast,tone,image,summary}</code></div>
+          <div class="ok">MVP는 <b>사전 생성 3~5개</b>를 배치로 만들어 두고 사용자 생성은 그 위에 얹는다 (PRD §9.1-3)</div></div>
+        <div class="srow" data-r="4"><div class="t"><span class="n">4</span>빌더 진입<span class="pri p0">P0</span></div>
+          <div class="src">S0 모달 오픈</div></div>
+      </div>
+      <div class="sp" style="margin-top:14px">
+        <h3>API</h3>
+        <div class="srow"><div class="t">GET /api/market/snapshot</div><div class="src">지수·기여도·실제 경로 · 일 1회 갱신 → <b>캐시 가능</b></div></div>
+        <div class="srow"><div class="t">GET /api/scenarios</div><div class="src">사전 생성 + 내가 만든 시나리오 목록</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== V2 ===================== -->
+<section class="screen" id="v2">
+  <div class="shead">
+    <div class="eb">V2 · 시나리오 상세 (모달) · P0 · 【구현됨】</div>
+    <h1>조건 · 경로 · 반증 신호</h1>
+    <p>예측값이 아니라 <b>조건</b>을 판다. 모든 시나리오는 "취소해야 하는 신호"를 함께 제시한다.</p>
+  </div>
+  <div class="cols">
+    <div class="device">
+      <div class="w solid"><span class="badge" data-b="1">1</span>
+        <div class="wl">핵심 결론 (thesis)</div>
+        <div class="wd" style="font-style:italic">"반도체 실적과 외국인 수급이 함께 돌아올 때<b>만</b>, 7월 28일의 급락은 '추세 붕괴'가 아니라 '재평가를 위한 리셋'이 됩니다."</div>
+      </div>
+      <div class="w solid"><span class="badge" data-b="2">2</span>
+        <div class="wl">4장 내러티브 (chapters)</div>
+        <div class="wd">각 장에 <b>근거(evidence)</b>가 붙는다</div>
+        <div class="wd" style="margin-top:6px;line-height:1.9">
+          1장 · 급락 다음 날, 무엇이 달라져야 하나 <span class="chip">출발점 6,023.66</span><br>
+          2장 · 실적은 숫자보다 기대의 방향을 바꾼다 <span class="chip">컨센서스 64.1조</span><br>
+          3장 · AI CapEx가 지수 멀티플을 다시 여는 과정 <span class="chip">1개월 7,500</span><br>
+          4장 · 개인 투자자는 언제 판단을 바꿀까 <span class="chip">반증 신호</span></div>
+      </div>
+      <div class="grid2">
+        <div class="w solid"><span class="badge" data-b="3">3</span>
+          <div class="wl">투자자 가이드</div>
+          <div class="wd">stance → action → rationale</div>
+          <div><span class="chip">확인 전</span><span class="chip">조건 충족</span><span class="chip">조건 이탈</span></div>
+        </div>
+        <div class="w solid"><span class="badge" data-b="4">4</span>
+          <div class="wl">학습 가이드</div>
+          <div class="wd">topic + question</div><div class="bar m"></div>
+        </div>
+      </div>
+      <div class="w solid"><span class="badge" data-b="5">5</span>
+        <div class="wl">인지 편향 체크 <span style="font-weight:600;color:var(--accent)">— 제품 정체성</span></div>
+        <div class="wd">편향 3종 × <code>함정(trap)</code> + <code>대응(counter)</code></div>
+        <div><span class="chip">FOMO</span><span class="chip">확증 편향</span><span class="chip">기준점 편향</span>
+             <span class="chip">손실 회피</span><span class="chip">처분 효과</span><span class="chip">군집 행동</span><span class="chip">통제 착각</span></div>
+      </div>
+      <div class="grid2">
+        <div class="w solid"><span class="badge" data-b="6">6</span>
+          <div class="wl">예상 이벤트 (주 단위)</div>
+          <div class="wd">week · category · impact</div>
+          <div class="wd" style="margin-top:4px">8/4 수급·실적 <b style="color:var(--up)">+10.0%</b> · 8/11 빅테크 <b style="color:var(--up)">+17.0%</b></div>
+        </div>
+        <div class="w solid"><span class="badge" data-b="7">7</span>
+          <div class="wl">멀티 에이전트 해석</div>
+          <div><span class="chip">뉴스 수집가</span><span class="chip">애널리스트</span><span class="chip">퀀트 트레이더</span></div>
+          <div class="wd" style="margin-top:4px">가중치: 뉴스 40 · 애널 20 · 퀀트 40</div>
+        </div>
+      </div>
+      <div class="w solid"><span class="badge" data-b="8">8</span>
+        <div class="wl">핵심 리스크 (riskPoints)</div><div class="bar l"></div>
+      </div>
+      <div class="disc">⚠️ AI 분석 기반 참고 자료이며, 투자 판단의 최종 책임은 본인에게 있습니다.</div>
+    </div>
+    <div class="spec">
+      <div class="sp">
+        <h3>데이터 바인딩 <small>Scenario · PRD §6.4</small></h3>
+        <div class="srow" data-r="1"><div class="t"><span class="n">1</span>핵심 결론<span class="pri p0">P0</span></div>
+          <div class="src"><code>thesis</code> · <code>summary</code> · <code>context</code></div>
+          <div class="ok"><b>"~할 때만"</b> 형태의 조건부 문장이 강제 규칙</div></div>
+        <div class="srow" data-r="2"><div class="t"><span class="n">2</span>4장 내러티브<span class="pri p0">P0</span></div>
+          <div class="src"><code>chapters[] = {title, body, evidence}</code></div></div>
+        <div class="srow" data-r="3"><div class="t"><span class="n">3</span>투자자 가이드<span class="pri p0">P0</span></div>
+          <div class="src"><code>investorGuide[] = {stance, action, rationale}</code></div></div>
+        <div class="srow" data-r="4"><div class="t"><span class="n">4</span>학습 가이드<span class="pri p1">P1</span></div>
+          <div class="src"><code>studyGuide[] = {topic, question}</code></div></div>
+        <div class="srow" data-r="5"><div class="t"><span class="n">5</span>편향 체크<span class="pri p0">P0</span></div>
+          <div class="src"><code>biasChecks[] = {bias, trap, counter}</code><br>
+            <b>이 제품이 뉴스앱과 갈라지는 지점.</b> V3의 편향 피드백과 짝을 이룬다</div></div>
+        <div class="srow" data-r="6"><div class="t"><span class="n">6</span>예상 이벤트<span class="pri p0">P0</span></div>
+          <div class="src"><code>events[] = {week, category, title, body, impact}</code></div></div>
+        <div class="srow" data-r="7"><div class="t"><span class="n">7</span>에이전트 해석<span class="pri p0">P0</span></div>
+          <div class="src"><code>agentInsights[] = {role, title, body}</code> — 3인</div>
+          <div class="warn">S1의 24 에이전트 → 이 3인으로의 <b>집계 규칙 미정</b> (오픈이슈 2)</div></div>
+        <div class="srow" data-r="8"><div class="t"><span class="n">8</span>핵심 리스크<span class="pri p0">P0</span></div>
+          <div class="src"><code>riskPoints[]</code> — <b>반증 신호 필수</b></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== V3 ===================== -->
+<section class="screen" id="v3">
+  <div class="shead">
+    <div class="eb">V3 · 마이 금융 트윈 탭 · P0 · 【구현됨 — 목데이터】</div>
+    <h1>그 시나리오가 내 자산에 닿는 경로</h1>
+    <p>유일하게 <b>상호작용</b>하는 화면. 자산 경로 계산은 결정론적 곱셈이다.</p>
+  </div>
+  <div class="cols">
+    <div class="device">
+      <div class="w solid"><span class="badge" data-b="1">1</span>
+        <div class="wl">나의 자산 현황</div>
+        <div class="grid4" style="margin-top:8px">
+          <div class="w" style="margin:0;padding:8px"><div class="wd">총자산<br><b>1억 2,845만</b></div></div>
+          <div class="w" style="margin:0;padding:8px"><div class="wd">현금 비중<br><b>18.4%</b></div></div>
+          <div class="w" style="margin:0;padding:8px"><div class="wd">목표 달성률<br><b>62%</b></div></div>
+          <div class="w" style="margin:0;padding:8px"><div class="wd">순자산 추이<br><b style="color:var(--up)">+18.4%</b></div></div>
+        </div>
+      </div>
+      <div class="w solid"><span class="badge" data-b="2">2</span>
+        <div class="wl">포트폴리오 보유 현황</div>
+        <div class="wd">종목 · 현재가 · 비중 · 등락률(1D) · <b>기여도(1D)</b></div>
+        <div class="bar l"></div><div class="bar m"></div><div class="bar s"></div>
+        <div class="disc">* 2026.07.28 KRX 장마감 기준이며, 실제 계좌와 다를 수 있습니다.</div>
+      </div>
+      <div class="w solid"><span class="badge" data-b="3">3</span>
+        <div class="wl">시나리오별 내 자산 경로 <span style="font-weight:600;color:var(--accent)">← 연결 조인트</span></div>
+        <div class="wd">시나리오를 고르면 내 보유 자산의 가상 경로가 다시 계산된다</div>
+        <div><span class="chip on">KOSPI 조건부 반등</span><span class="chip">반도체 실적 미스</span><span class="chip">외국인 매도 재확산</span>
+             <span class="chip">+ 직접 만들기</span></div>
+        <div class="band"><span class="o"></span><span class="b"></span><span class="r"></span></div>
+      </div>
+      <div class="w solid"><span class="badge" data-b="4">4</span>
+        <div class="wl">금융 대가의 한마디</div>
+        <div><span class="chip">워런 버핏</span><span class="chip">하워드 막스</span><span class="chip">트럼프식 시장 관점</span></div>
+        <div class="wd" style="margin-top:5px">각 카드에 <b>"직접 이야기해보기"</b> 진입</div>
+        <div class="disc">상기 정보는 AI 분석 기반 참고 자료이며, 투자 판단의 최종 책임은 본인에게 있습니다.</div>
+      </div>
+      <div class="w"><span class="badge" data-b="5">5</span>
+        <div class="wl">트윈 입력 화면 <span style="font-weight:600;color:#9a3412">【없음 — 신규 필요】</span></div>
+        <div class="wd">지금은 하드코딩 목데이터. 사용자가 자산·목표·보유 종목을 채울 화면이 없다</div>
+      </div>
+    </div>
+    <div class="spec">
+      <div class="sp">
+        <h3>데이터 바인딩 <small>UserTwin × Scenario</small></h3>
+        <div class="srow" data-r="1"><div class="t"><span class="n">1</span>자산 현황<span class="pri p0">P0</span></div>
+          <div class="src"><code>profile.{totalAsset, cashRatio, goalAmount, goalProgress}</code> · <code>netWorthSeries[]</code></div></div>
+        <div class="srow" data-r="2"><div class="t"><span class="n">2</span>포트폴리오<span class="pri p0">P0</span></div>
+          <div class="src"><code>holdings[] = {name, code, value, weight, change, contribution}</code></div>
+          <div class="warn">weight 합 = 1.0 검증 필수 (트러스트 경계)</div></div>
+        <div class="srow" data-r="3"><div class="t"><span class="n">3</span>자산 경로<span class="pri p0">P0</span></div>
+          <div class="src"><code>Scenario.path[] × holdings[].weight</code><br>
+            <b>결정론적 곱셈 · LLM 불필요 · 유저가 검산 가능해야 함</b></div>
+          <div class="ok">시나리오가 두 탭을 잇는 유일한 객체 — 여기가 그 접합부</div></div>
+        <div class="srow" data-r="4"><div class="t"><span class="n">4</span>대가 3인<span class="pri p0">P0</span></div>
+          <div class="src">버핏 · 막스 · <b>트럼프식 시장 관점</b></div>
+          <div class="warn">【오픈이슈 5】 v0.5의 4인(버핏·달리오·캐시우드·막스)에서 바뀜. <b>실존 정치인 실명</b>이라 면책 수위 별도 검토 필요</div></div>
+        <div class="srow" data-r="5"><div class="t"><span class="n">5</span>트윈 입력<span class="pri p0">P0</span></div>
+          <div class="src">【오픈이슈 3】 <b>화면 자체가 없다.</b> 온보딩 + 무보유 유저 템플릿 3종 필요</div></div>
+      </div>
+      <div class="sp" style="margin-top:14px">
+        <h3>API</h3>
+        <div class="srow"><div class="t">GET / POST /api/twin</div><div class="src"><code>UserTwin</code> 조회·저장</div></div>
+        <div class="srow"><div class="t">POST /api/twin/project</div><div class="src"><code>{twinId, scenarioId}</code> → 자산 경로 (곱셈, LLM 0회)</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== API ===================== -->
+<section class="screen" id="api">
+  <div class="shead">
+    <div class="eb">계약 요약</div>
+    <h1>API &amp; 데이터 계약</h1>
+    <p>화면은 이미 있다. 이 표가 합의되면 백엔드가 붙는다.</p>
+  </div>
+
+  <h2 class="sec">API</h2>
+  <table>
+    <tr><th style="width:230px">엔드포인트</th><th style="width:90px">화면</th><th>반환 / 비고</th><th style="width:110px">상태</th></tr>
+    <tr><td><code>POST /api/graph/ontology/generate</code></td><td>S1</td><td>엔터티 타입 7 · 관계 타입 6</td><td>미구현</td></tr>
+    <tr><td><code>POST /api/graph/build</code></td><td>S1</td><td>노드 42 · 엣지 68 · 스키마 7</td><td>미구현</td></tr>
+    <tr><td><code>POST /api/simulation/prepare</code></td><td>S1</td><td>단계 03·04·05 공용 — 에이전트 24 · 설정 · 활성화</td><td>미구현</td></tr>
+    <tr><td><code>POST /api/simulation/start</code></td><td>S1</td><td>시뮬 실행 → <code>Scenario</code></td><td>미구현</td></tr>
+    <tr><td><code>GET /api/market/snapshot</code></td><td>V1</td><td>지수·기여도·실제 경로</td><td>하드코딩</td></tr>
+    <tr><td><code>GET /api/scenarios</code> · <code>/{id}</code></td><td>V1·V2·V3</td><td><code>Scenario</code> 목록·상세</td><td>하드코딩 3건</td></tr>
+    <tr><td><code>GET</code> · <code>POST /api/twin</code></td><td>V3</td><td><code>UserTwin</code></td><td>목데이터</td></tr>
+    <tr><td><code>POST /api/twin/project</code></td><td>V3</td><td>자산 경로 (곱셈)</td><td>미구현</td></tr>
+  </table>
+
+  <h2 class="sec">화면 × 계약</h2>
+  <table>
+    <tr><th style="width:150px">화면</th><th>온톨로지/그래프</th><th>시뮬 설정</th><th>Scenario</th><th>UserTwin</th><th style="width:70px">MVP</th></tr>
+    <tr><td><b>S0</b> 빌더</td><td><b>쓰기(입력)</b></td><td>—</td><td>—</td><td>—</td><td>P0</td></tr>
+    <tr><td><b>S1</b> 빌드 진행</td><td><b>전체</b></td><td><b>전체</b></td><td>생성</td><td>—</td><td>P0</td></tr>
+    <tr><td><b>V1</b> 시장 인사이트</td><td>—</td><td>—</td><td>목록</td><td>—</td><td>P0</td></tr>
+    <tr><td><b>V2</b> 시나리오 상세</td><td>—</td><td>—</td><td><b>전체</b></td><td>—</td><td>P0</td></tr>
+    <tr><td><b>V3</b> 금융 트윈</td><td>—</td><td>—</td><td><b>path</b></td><td><b>읽기+쓰기</b></td><td>P0</td></tr>
+  </table>
+
+  <h2 class="sec">공통 규칙</h2>
+  <table>
+    <tr><th style="width:170px">항목</th><th>규칙</th></tr>
+    <tr><td>차트 색</td><td><b style="color:var(--up)">빨강 = 상승</b> · <b style="color:var(--down)">파랑 = 하락</b> (한국 시장 관례)</td></tr>
+    <tr><td>전망 표기</td><td>단일 수치 단정 금지 → <b>중심값 + 밴드</b></td></tr>
+    <tr><td>조건부 서술</td><td>모든 시나리오는 <b>조건 → 경로 → 반증 신호</b> 3종 세트</td></tr>
+    <tr><td>커뮤니티 데이터</td><td>사실이 아니라 <b>심리 관측값</b>. 언급량과 시장 방향을 동일 취급 금지</td></tr>
+    <tr><td>과거 데이터</td><td>과거 결과를 미래의 정답으로 쓰지 않는다. <b>현재 조건과의 차이를 함께 표시</b></td></tr>
+    <tr><td>면책</td><td>AI 참고 자료 고지 · "실제 계좌와 다를 수 있습니다" · 상품 추천 금지 · 대가 페르소나 라벨 상시</td></tr>
+  </table>
+
+  <div class="note warn">
+    <b>⚠️ 최대 리스크 — 캐시가 성립하지 않는다 (PRD §9.1)</b><br>
+    질문마다 온톨로지를 새로 만들면 캐시 키가 없다. <b>에이전트 24 × 라운드 24 = 질문 1건당 수백 회 LLM 호출</b>이고, 유저 수에 선형 비례한다.<br>
+    완화 후보 — ① 시장 전체 그래프를 <b>일 1회 사전 빌드</b>하고 질문별로 서브그래프만 자르기 ② 프롬프트 대신 <b>정규화된 시드 조합 + 기간</b>을 캐시 키로 ③ 대표 시나리오 3~5개 배치 사전 생성 ④ <b>비동기 잡 큐(필수)</b>
+  </div>
+
+  <div class="note">
+    <b>지금 병목은 프론트가 아니다.</b> 화면 5개 중 4개가 이미 구현되어 있고, 없는 것은 <code>Scenario</code>를 실제로 만들어내는 백엔드와 트윈 입력 화면뿐이다.
+  </div>
+
+  <div class="note warn">
+    <b>미확정 (PRD §11 오픈 이슈)</b><br>
+    1. 관계 타입 6종의 <b>의미 정의</b> — <code>DRIVES</code>/<code>IMPACTS</code>/<code>CONSTRAINS</code> 경계, 부호·강도를 어디에 담나<br>
+    2. 24 에이전트 → 3인 해석 <b>집계 규칙</b> · 가중치를 누가 정하나<br>
+    3. <b>트윈 입력 화면 부재</b> — 온보딩 + 무보유 유저 템플릿<br>
+    4. <b>캐시 전략</b> (위 리스크)<br>
+    5. 대가 로스터 변경 — <b>"트럼프식 시장 관점"</b> 면책 수위<br>
+    6. AGPL 의무 범위 · 7. MiroFish <b>재현성</b>(시드 고정 가능 여부) · 8. 히스토리컬 유사 사례 매칭 규칙
+  </div>
+</section>
+
+<div class="foot">
+  근거 — <b>PRD v0.6</b> · <b>docs/ontology/finverse-ontology.md</b> · 구현 기준 <code>app/page.tsx</code><br>
+  이 파일은 <b>구현용 명세</b>입니다. 동작하는 화면은 <code>uv run python tools/site.py dev</code> → <code>localhost:3000</code>
+</div>
+
+</div>
+<script>
+(function(){
+  var tabs = document.querySelectorAll('.tab');
+  tabs.forEach(function(t){
+    t.addEventListener('click', function(){
+      tabs.forEach(function(x){x.classList.remove('on')});
+      t.classList.add('on');
+      document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('on')});
+      var el = document.getElementById(t.dataset.s);
+      if(el) el.classList.add('on');
+      window.scrollTo({top:0,behavior:'smooth'});
+    });
+  });
+  function mark(scope, n, on){
+    var b = scope.querySelector('.badge[data-b="'+n+'"]');
+    var r = scope.querySelector('.srow[data-r="'+n+'"]');
+    if(b) b.classList.toggle('hl', on);
+    if(r) r.classList.toggle('hl', on);
+  }
+  document.querySelectorAll('.screen').forEach(function(scope){
+    scope.querySelectorAll('.badge').forEach(function(b){
+      b.addEventListener('mouseenter', function(){ mark(scope, b.dataset.b, true) });
+      b.addEventListener('mouseleave', function(){ mark(scope, b.dataset.b, false) });
+    });
+    scope.querySelectorAll('.srow[data-r]').forEach(function(r){
+      r.addEventListener('mouseenter', function(){ mark(scope, r.dataset.r, true) });
+      r.addEventListener('mouseleave', function(){ mark(scope, r.dataset.r, false) });
+    });
+  });
+  var tg = document.getElementById('tgSpec');
+  tg.addEventListener('click', function(){
+    var on = tg.classList.toggle('on');
+    document.querySelectorAll('.spec').forEach(function(s){ s.style.display = on ? '' : 'none' });
+    document.querySelectorAll('.cols').forEach(function(c){ c.style.gridTemplateColumns = on ? '' : '1fr' });
+  });
+})();
+</script>
+</body>
+</html>
